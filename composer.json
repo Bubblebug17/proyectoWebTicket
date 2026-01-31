@@ -1,0 +1,13 @@
+{
+    "name": "proyecto/ticket-system",
+    "description": "Sistema de gestión de tickets con PHP 8.2",
+    "type": "project",
+    "require": {
+        "php": ">=8.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/"
+        }
+    }
+}
