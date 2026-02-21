@@ -55,5 +55,8 @@ class Application
         $this->router->get('soporte/tickets/view', 'SoporteController@viewTicket', ['role' => 'soporte']);
         $this->router->post('soporte/tickets/responder', 'SoporteController@responderTicket', ['role' => 'soporte']);
         $this->router->post('soporte/tickets/cambiar-estado', 'SoporteController@cambiarEstado', ['role' => 'soporte']);
+        
+        // Rutas protegidas - Reportes
+        $this->router->get('soporte/reportes', 'ReportesController@index', ['role' => 'soporte']);
     }
 }

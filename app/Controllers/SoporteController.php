@@ -27,11 +27,30 @@ class SoporteController extends BaseController
     public function dashboard(): void
     {
         $user = $this->getCurrentUser();
-        $tickets = $this->ticketModel->findAll();
+        
+        // Paginación
+        $limit = 10;
+        $page = (int) ($this->request->get('page') ?? 1);
+        $page = max(1, $page); // Asegurar que sea al menos 1
+        $offset = ($page - 1) * $limit;
+
+        $totalTickets = $this->ticketModel->countAll();
+        $totalPages = ceil($totalTickets / $limit);
+        
+        // Asegurar que la página no exceda el total
+        if ($page > $totalPages && $totalPages > 0) {
+            $page = $totalPages;
+            $offset = ($page - 1) * $limit;
+        }
+
+        $tickets = $this->ticketModel->findPaginated($limit, $offset);
 
         $this->view('soporte/dashboard', [
             'user' => $user,
-            'tickets' => $tickets
+            'tickets' => $tickets,
+            'currentPage' => $page,
+            'totalPages' => $totalPages,
+            'limit' => $limit
         ]);
     }
 

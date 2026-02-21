@@ -33,6 +33,35 @@ class TicketModel
     }
 
     /**
+     * Cuenta todos los tickets
+     */
+    public function countAll(): int
+    {
+        $stmt = $this->db->query("SELECT COUNT(*) FROM tickets");
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * Obtiene tickets paginados
+     */
+    public function findPaginated(int $limit, int $offset): array
+    {
+        $stmt = $this->db->prepare("
+            SELECT t.*, s.nombre as soporte_nombre
+            FROM tickets t
+            LEFT JOIN usuarios s ON t.soporte_id = s.id
+            ORDER BY t.fecha_creacion DESC
+            LIMIT :limit OFFSET :offset
+        ");
+        
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
      * Busca un ticket por ID con información adicional
      */
     public function findById(int $id): ?array
@@ -118,6 +147,47 @@ class TicketModel
 
         $stmt = $this->db->prepare($sql);
         return $stmt->execute($params);
+    }
+
+    /**
+     * Obtiene conteo de tickets por estado
+     */
+    public function getTicketsByStatusCount(): array
+    {
+        $stmt = $this->db->query("
+            SELECT estado, COUNT(*) as total
+            FROM tickets
+            GROUP BY estado
+        ");
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Obtiene conteo de tickets por ISP
+     */
+    public function getTicketsByISPCount(): array
+    {
+        $stmt = $this->db->query("
+            SELECT isp, COUNT(*) as total
+            FROM tickets
+            GROUP BY isp
+            ORDER BY total DESC
+        ");
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Obtiene conteo de tickets por ISP y Estado
+     */
+    public function getTicketsByISPAndStatusCount(): array
+    {
+        $stmt = $this->db->query("
+            SELECT isp, estado, COUNT(*) as total
+            FROM tickets
+            GROUP BY isp, estado
+            ORDER BY isp, estado
+        ");
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     /**

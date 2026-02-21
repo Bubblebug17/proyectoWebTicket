@@ -47,6 +47,23 @@ ob_start();
                 <?php endforeach; ?>
             </tbody>
         </table>
+        
+        <!-- Paginación -->
+        <div class="pagination" style="display: flex; justify-content: center; margin-top: 20px; gap: 10px;">
+            <?php if ($currentPage > 1): ?>
+                <a href="/proyectoWebTicket/soporte/dashboard?page=<?= $currentPage - 1 ?>" class="btn">Anterior</a>
+            <?php endif; ?>
+            
+            <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                <a href="/proyectoWebTicket/soporte/dashboard?page=<?= $i ?>" class="btn" style="<?= $i === $currentPage ? 'background-color: #2c3e50;' : '' ?>">
+                    <?= $i ?>
+                </a>
+            <?php endfor; ?>
+            
+            <?php if ($currentPage < $totalPages): ?>
+                <a href="/proyectoWebTicket/soporte/dashboard?page=<?= $currentPage + 1 ?>" class="btn">Siguiente</a>
+            <?php endif; ?>
+        </div>
     <?php endif; ?>
 </div>
 

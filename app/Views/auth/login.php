@@ -16,9 +16,6 @@ ob_start();
         </div>
         <button type="submit" class="btn">Iniciar Sesión</button>
     </form>
-    <p style="margin-top: 20px;">
-        ¿No tienes cuenta? <a href="/proyectoWebTicket/register">Regístrate aquí</a>
-    </p>
 </div>
 
 <?php

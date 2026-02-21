@@ -162,6 +162,7 @@
                     <?php if (isset($user)): ?>
                         <li><a href="/proyectoWebTicket/soporte/dashboard">Dashboard</a></li>
                         <li><a href="/proyectoWebTicket/soporte/tickets">Tickets</a></li>
+                        <li><a href="/proyectoWebTicket/soporte/reportes">Reportes</a></li>
                         <li><a href="/proyectoWebTicket/logout">Cerrar Sesión</a></li>
                     <?php else: ?>
                         <li><a href="/proyectoWebTicket">Crear Ticket</a></li>

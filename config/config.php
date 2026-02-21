@@ -1,7 +1,4 @@
 <?php
-/**
- * Configuración principal de la aplicación
- */
 
 return [
     'database' => [
