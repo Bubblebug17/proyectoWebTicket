@@ -26,7 +26,9 @@ class TicketController extends BaseController
      */
     public function create(): void
     {
-        $this->view('ticket/create');
+        $this->view('ticket/create', [
+            'ispOpciones' => Ticket::ISP_OPCIONES,
+        ]);
     }
 
     /**
@@ -64,7 +66,7 @@ class TicketController extends BaseController
             $errors[] = 'El celular es requerido';
         }
 
-        if (empty($isp) || !in_array($isp, ['Claro', 'Win', 'Movistar', 'Bitel', 'Fibratel'])) {
+        if (empty($isp) || !in_array($isp, Ticket::ispsValidos(), true)) {
             $errors[] = 'Debe seleccionar un ISP válido';
         }
 
@@ -89,6 +91,7 @@ class TicketController extends BaseController
         if (!empty($errors)) {
             $this->view('ticket/create', [
                 'errors' => $errors,
+                'ispOpciones' => Ticket::ISP_OPCIONES,
                 'old' => [
                     'nombre' => $nombre,
                     'apellido' => $apellido,
@@ -121,6 +124,7 @@ class TicketController extends BaseController
         } else {
             $this->view('ticket/create', [
                 'errors' => ['Error al registrar el ticket. Por favor, intente nuevamente.'],
+                'ispOpciones' => Ticket::ISP_OPCIONES,
                 'old' => [
                     'nombre' => $nombre,
                     'apellido' => $apellido,

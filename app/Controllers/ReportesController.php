@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Entities\Ticket;
 use App\Core\Request;
 use App\Models\TicketModel;
 
@@ -15,45 +16,38 @@ class ReportesController extends BaseController
         $this->ticketModel = new TicketModel();
     }
 
-    public function index(Request $request)
+    public function index(Request $request): void
     {
-        // Obtener datos para los reportes
+        $fechaDesde = trim((string) $request->get('fecha_desde', ''));
+        $fechaHasta = trim((string) $request->get('fecha_hasta', ''));
+
         $ticketsPorEstado = $this->ticketModel->getTicketsByStatusCount();
-        $ticketsPorISP = $this->ticketModel->getTicketsByISPCount();
-        
-        // Preparar datos para el gráfico de barras agrupadas por ISP y Estado
         $rawISPData = $this->ticketModel->getTicketsByISPAndStatusCount();
-        
-        // Obtener todos los ISPs únicos ordenados
-        // Nota: Usamos una lista predefinida si queremos mantener el orden o asegurarnos de que todos aparezcan
-        // O extraemos dinámicamente de la base de datos
+
         $isps = [];
         foreach ($rawISPData as $row) {
             if (!in_array($row['isp'], $isps)) {
                 $isps[] = $row['isp'];
             }
         }
-        sort($isps); // Orden alfabético para consistencia
+        sort($isps);
 
-        // Inicializar datos para series con 0s
         $seriesData = [
             'abierto' => array_fill(0, count($isps), 0),
             'en_proceso' => array_fill(0, count($isps), 0),
             'cerrado' => array_fill(0, count($isps), 0)
         ];
-        
-        // Mapeo ISP -> índice para acceso rápido
+
         $ispMap = array_flip($isps);
-        
+
         foreach ($rawISPData as $row) {
             $ispIndex = $ispMap[$row['isp']];
             $estado = $row['estado'];
             if (isset($seriesData[$estado])) {
-                $seriesData[$estado][$ispIndex] = (int)$row['total'];
+                $seriesData[$estado][$ispIndex] = (int) $row['total'];
             }
         }
 
-        // Formato final para la vista (Gráfico de Barras Agrupadas)
         $ticketsPorISPChartData = [
             'categories' => array_values($isps),
             'series' => [
@@ -62,8 +56,7 @@ class ReportesController extends BaseController
                 ['name' => 'Cerrado', 'data' => $seriesData['cerrado'], 'color' => '#95a5a6']
             ]
         ];
-        
-        // Preparar datos para el embudo (flujo lógico: Abierto -> En Proceso -> Cerrado)
+
         $embudoData = [
             ['Abierto', 0],
             ['En Proceso', 0],
@@ -71,17 +64,101 @@ class ReportesController extends BaseController
         ];
 
         foreach ($ticketsPorEstado as $item) {
-            if ($item['estado'] === 'abierto') $embudoData[0][1] = (int)$item['total'];
-            if ($item['estado'] === 'en_proceso') $embudoData[1][1] = (int)$item['total'];
-            if ($item['estado'] === 'cerrado') $embudoData[2][1] = (int)$item['total'];
+            if ($item['estado'] === 'abierto') {
+                $embudoData[0][1] = (int) $item['total'];
+            }
+            if ($item['estado'] === 'en_proceso') {
+                $embudoData[1][1] = (int) $item['total'];
+            }
+            if ($item['estado'] === 'cerrado') {
+                $embudoData[2][1] = (int) $item['total'];
+            }
         }
 
-        // Renderizar vista
         $this->view('soporte/reportes', [
-            'user' => $_SESSION['user'],
+            'user' => $this->getCurrentUser(),
+            'fechaDesde' => $fechaDesde,
+            'fechaHasta' => $fechaHasta,
             'ticketsPorEstado' => $ticketsPorEstado,
-            'ticketsPorISPChartData' => $ticketsPorISPChartData, // Nueva variable
+            'ticketsPorISPChartData' => $ticketsPorISPChartData,
             'embudoData' => $embudoData
         ]);
+    }
+
+    public function exportarExcel(Request $request): void
+    {
+        $fechaDesde = trim((string) $request->get('fecha_desde', ''));
+        $fechaHasta = trim((string) $request->get('fecha_hasta', ''));
+
+        $tickets = $this->ticketModel->findForReport(
+            $fechaDesde !== '' ? $fechaDesde : null,
+            $fechaHasta !== '' ? $fechaHasta : null
+        );
+
+        $filename = 'reporte_tickets_' . date('Y-m-d_His') . '.xls';
+
+        header('Content-Type: application/vnd.ms-excel; charset=UTF-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: no-store, no-cache, must-revalidate');
+        header('Pragma: no-cache');
+
+        echo "\xEF\xBB\xBF";
+        echo '<html><head><meta charset="UTF-8"></head><body>';
+        echo '<table border="1">';
+        echo '<thead><tr>';
+        echo '<th>ID</th>';
+        echo '<th>Nombre</th>';
+        echo '<th>Apellido</th>';
+        echo '<th>Correo</th>';
+        echo '<th>Celular</th>';
+        echo '<th>ISP</th>';
+        echo '<th>Problema</th>';
+        echo '<th>Descripción</th>';
+        echo '<th>Estado</th>';
+        echo '<th>Agente Asignado</th>';
+        echo '<th>Fecha Creación</th>';
+        echo '<th>Última Actualización</th>';
+        echo '</tr></thead><tbody>';
+
+        if (empty($tickets)) {
+            echo '<tr><td colspan="12">No hay tickets en el rango seleccionado.</td></tr>';
+        } else {
+            foreach ($tickets as $ticket) {
+                echo '<tr>';
+                echo '<td>' . (int) $ticket['id'] . '</td>';
+                echo '<td>' . htmlspecialchars($ticket['nombre']) . '</td>';
+                echo '<td>' . htmlspecialchars($ticket['apellido']) . '</td>';
+                echo '<td>' . htmlspecialchars($ticket['correo']) . '</td>';
+                echo '<td>' . htmlspecialchars($ticket['celular']) . '</td>';
+                echo '<td>' . htmlspecialchars(Ticket::etiquetaIsp($ticket['isp'])) . '</td>';
+                echo '<td>' . htmlspecialchars($ticket['problema']) . '</td>';
+                echo '<td>' . htmlspecialchars($ticket['descripcion']) . '</td>';
+                echo '<td>' . htmlspecialchars(ucfirst(str_replace('_', ' ', $ticket['estado']))) . '</td>';
+                echo '<td>' . htmlspecialchars($ticket['soporte_nombre'] ?? 'Sin asignar') . '</td>';
+                echo '<td>' . htmlspecialchars($ticket['fecha_creacion']) . '</td>';
+                echo '<td>' . htmlspecialchars($ticket['fecha_actualizacion'] ?? '') . '</td>';
+                echo '</tr>';
+            }
+        }
+
+        echo '</tbody></table>';
+        echo '</body></html>';
+        exit;
+    }
+
+    public function exportarPDF(Request $request): void
+    {
+        $fechaDesde = trim((string) $request->get('fecha_desde', ''));
+        $fechaHasta = trim((string) $request->get('fecha_hasta', ''));
+
+        $tickets = $this->ticketModel->findForReport(
+            $fechaDesde !== '' ? $fechaDesde : null,
+            $fechaHasta !== '' ? $fechaHasta : null
+        );
+
+        header('Content-Type: text/html; charset=UTF-8');
+
+        require ROOT_PATH . '/app/Views/soporte/reportes_print.php';
+        exit;
     }
 }

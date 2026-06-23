@@ -58,5 +58,7 @@ class Application
         
         // Rutas protegidas - Reportes
         $this->router->get('soporte/reportes', 'ReportesController@index', ['role' => 'soporte']);
+        $this->router->get('reportes/exportarExcel', 'ReportesController@exportarExcel', ['role' => 'soporte']);
+        $this->router->get('reportes/exportarPDF', 'ReportesController@exportarPDF', ['role' => 'soporte']);
     }
 }

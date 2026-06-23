@@ -6,6 +6,35 @@ ob_start();
 <div class="card">
     <h2>Reportes de Tickets</h2>
     <p>Visualización gráfica del estado y distribución de los tickets de soporte.</p>
+
+    <form method="GET" action="/proyectoWebTicket/soporte/reportes" class="report-filters">
+        <div class="form-group">
+            <label for="fecha_desde">Fecha desde</label>
+            <input type="date" id="fecha_desde" name="fecha_desde"
+                   value="<?= htmlspecialchars($fechaDesde ?? '') ?>">
+        </div>
+        <div class="form-group">
+            <label for="fecha_hasta">Fecha hasta</label>
+            <input type="date" id="fecha_hasta" name="fecha_hasta"
+                   value="<?= htmlspecialchars($fechaHasta ?? '') ?>">
+        </div>
+        <button type="submit" class="btn">Aplicar filtros</button>
+    </form>
+
+    <?php
+    $queryFiltros = http_build_query(array_filter([
+        'fecha_desde' => $fechaDesde ?? '',
+        'fecha_hasta' => $fechaHasta ?? '',
+    ]));
+    $suffixFiltros = $queryFiltros !== '' ? '?' . $queryFiltros : '';
+    ?>
+
+    <div class="export-actions">
+        <a href="/proyectoWebTicket/reportes/exportarExcel<?= $suffixFiltros ?>"
+           class="btn btn-success btn-export">Exportar a Excel</a>
+        <a href="/proyectoWebTicket/reportes/exportarPDF<?= $suffixFiltros ?>"
+           class="btn btn-export" target="_blank" rel="noopener">Imprimir Reporte PDF</a>
+    </div>
 </div>
 
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
@@ -80,13 +109,13 @@ document.addEventListener('DOMContentLoaded', function () {
         }]
     });
 
-    // 2. Bar Chart (Tickets por ISP y Estado - Agrupado)
+    // 2. Bar Chart (Tickets por tipo de conexión y Estado - Agrupado)
     Highcharts.chart('barChartContainer', {
         chart: {
             type: 'column'
         },
         title: {
-            text: 'Tickets por ISP y Estado'
+            text: 'Tickets por tipo de conexión y Estado'
         },
         xAxis: {
             categories: ticketsPorISPData.categories,

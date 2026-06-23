@@ -45,9 +45,17 @@ class SoporteController extends BaseController
 
         $tickets = $this->ticketModel->findPaginated($limit, $offset);
 
+        $stats = ['abierto' => 0, 'en_proceso' => 0, 'cerrado' => 0];
+        foreach ($this->ticketModel->getTicketsByStatusCount() as $row) {
+            if (isset($stats[$row['estado']])) {
+                $stats[$row['estado']] = (int) $row['total'];
+            }
+        }
+
         $this->view('soporte/dashboard', [
             'user' => $user,
             'tickets' => $tickets,
+            'stats' => $stats,
             'currentPage' => $page,
             'totalPages' => $totalPages,
             'limit' => $limit
@@ -116,7 +124,12 @@ class SoporteController extends BaseController
             // Asignar el ticket al soporte si aún no está asignado
             $ticket = $this->ticketModel->findByIdEntity($ticketId);
             if ($ticket && !$ticket->getSoporteId()) {
-                $this->ticketModel->updateEstado($ticketId, 'en_proceso', $user['id']);
+                $this->ticketModel->updateEstado(
+                    $ticketId,
+                    'en_proceso',
+                    $ticket->getEstado(),
+                    $user['id']
+                );
             }
         }
 
@@ -131,14 +144,20 @@ class SoporteController extends BaseController
         $user = $this->getCurrentUser();
         $ticketId = (int) $this->request->post('ticket_id');
         $estado = $this->request->post('estado');
+        $estadoActual = $this->request->post('estado_actual', '');
 
-        $estadosValidos = ['abierto', 'en_proceso', 'cerrado'];
-        if (!in_array($estado, $estadosValidos)) {
-            $this->redirect("/proyectoWebTicket/soporte/tickets/view?id={$ticketId}");
+        if (!TicketModel::estadoEsValido($estado) || !TicketModel::estadoEsValido($estadoActual)) {
+            $this->redirect("/proyectoWebTicket/soporte/tickets/view?id={$ticketId}&error=estado_invalido");
             return;
         }
 
-        $this->ticketModel->updateEstado($ticketId, $estado, $user['id']);
+        $actualizado = $this->ticketModel->updateEstado($ticketId, $estado, $estadoActual, $user['id']);
+
+        if (!$actualizado) {
+            $this->redirect("/proyectoWebTicket/soporte/tickets/view?id={$ticketId}&error=conflicto_concurrencia");
+            return;
+        }
+
         $this->redirect("/proyectoWebTicket/soporte/tickets/view?id={$ticketId}");
     }
 }

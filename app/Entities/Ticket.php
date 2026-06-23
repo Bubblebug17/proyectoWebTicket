@@ -7,12 +7,18 @@ namespace App\Entities;
  */
 class Ticket
 {
+    /** @var array<string, string> valor BD => etiqueta visible */
+    public const ISP_OPCIONES = [
+        'fibra_optica' => 'Fibra Óptica',
+        'wisp_inalambrico' => 'WISP / Inalámbrico',
+    ];
+
     private ?int $id;
     private string $nombre;
     private string $apellido;
     private string $correo;
     private string $celular;
-    private string $isp; // 'Claro', 'Win', 'Movistar', 'Bitel', 'Fibratel'
+    private string $isp; // 'fibra_optica' | 'wisp_inalambrico'
     private string $problema;
     private string $descripcion;
     private ?string $archivo;
@@ -203,5 +209,16 @@ class Ticket
             'fecha_creacion' => $this->fecha_creacion,
             'fecha_actualizacion' => $this->fecha_actualizacion
         ];
+    }
+
+    /** @return list<string> */
+    public static function ispsValidos(): array
+    {
+        return array_keys(self::ISP_OPCIONES);
+    }
+
+    public static function etiquetaIsp(string $isp): string
+    {
+        return self::ISP_OPCIONES[$isp] ?? $isp;
     }
 }

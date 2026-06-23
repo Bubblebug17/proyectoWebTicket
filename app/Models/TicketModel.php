@@ -11,11 +11,38 @@ use PDO;
  */
 class TicketModel
 {
+    public const ESTADOS_VALIDOS = ['abierto', 'en_proceso', 'cerrado'];
+
+    /** @var array<string, list<string>> */
+    private const TRANSICIONES_PERMITIDAS = [
+        'abierto' => ['en_proceso', 'cerrado'],
+        'en_proceso' => ['cerrado'],
+        'cerrado' => [],
+    ];
+
     private PDO $db;
 
-    public function __construct()
+    public function __construct(?PDO $db = null)
     {
-        $this->db = Database::getConnection();
+        $this->db = $db ?? Database::getConnection();
+    }
+
+    public static function estadoEsValido(string $estado): bool
+    {
+        return in_array($estado, self::ESTADOS_VALIDOS, true);
+    }
+
+    public static function transicionEsPermitida(string $estadoActual, string $nuevoEstado): bool
+    {
+        if (!self::estadoEsValido($estadoActual) || !self::estadoEsValido($nuevoEstado)) {
+            return false;
+        }
+
+        if ($estadoActual === $nuevoEstado) {
+            return true;
+        }
+
+        return in_array($nuevoEstado, self::TRANSICIONES_PERMITIDAS[$estadoActual], true);
     }
 
     /**
@@ -131,22 +158,70 @@ class TicketModel
     }
 
     /**
-     * Actualiza el estado de un ticket
+     * Actualiza el estado con control de concurrencia optimista (estado esperado).
      */
-    public function updateEstado(int $id, string $estado, ?int $soporteId = null): bool
-    {
-        $sql = "UPDATE tickets SET estado = :estado, fecha_actualizacion = NOW()";
-        $params = ['id' => $id, 'estado' => $estado];
+    public function updateEstado(
+        int $id,
+        string $nuevoEstado,
+        string $estadoEsperado,
+        ?int $soporteId = null
+    ): bool {
+        if (!self::transicionEsPermitida($estadoEsperado, $nuevoEstado)) {
+            return false;
+        }
+
+        $sql = "UPDATE tickets SET estado = :nuevo_estado, fecha_actualizacion = NOW()";
+        $params = [
+            'id' => $id,
+            'nuevo_estado' => $nuevoEstado,
+            'estado_esperado' => $estadoEsperado,
+        ];
 
         if ($soporteId !== null) {
             $sql .= ", soporte_id = :soporte_id";
             $params['soporte_id'] = $soporteId;
         }
 
-        $sql .= " WHERE id = :id";
+        $sql .= " WHERE id = :id AND estado = :estado_esperado";
 
         $stmt = $this->db->prepare($sql);
-        return $stmt->execute($params);
+        $stmt->execute($params);
+
+        return $stmt->rowCount() === 1;
+    }
+
+    /**
+     * Obtiene tickets para reportes con filtro opcional por rango de fechas,
+     * ordenados por criticidad (abierto → en_proceso → cerrado).
+     */
+    public function findForReport(?string $fechaDesde = null, ?string $fechaHasta = null): array
+    {
+        $sql = "
+            SELECT t.*, s.nombre as soporte_nombre
+            FROM tickets t
+            LEFT JOIN usuarios s ON t.soporte_id = s.id
+            WHERE 1=1
+        ";
+        $params = [];
+
+        if ($fechaDesde !== null && $fechaDesde !== '') {
+            $sql .= " AND DATE(t.fecha_creacion) >= :fecha_desde";
+            $params['fecha_desde'] = $fechaDesde;
+        }
+
+        if ($fechaHasta !== null && $fechaHasta !== '') {
+            $sql .= " AND DATE(t.fecha_creacion) <= :fecha_hasta";
+            $params['fecha_hasta'] = $fechaHasta;
+        }
+
+        $sql .= "
+            ORDER BY FIELD(t.estado, 'abierto', 'en_proceso', 'cerrado'), t.fecha_creacion DESC
+        ";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     /**

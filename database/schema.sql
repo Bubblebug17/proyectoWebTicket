@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS tickets (
     apellido VARCHAR(100) NOT NULL,
     correo VARCHAR(100) NOT NULL,
     celular VARCHAR(20) NOT NULL,
-    isp ENUM('Claro', 'Win', 'Movistar', 'Bitel', 'Fibratel') NOT NULL,
+    isp ENUM('fibra_optica', 'wisp_inalambrico') NOT NULL,
     problema VARCHAR(255) NOT NULL,
     descripcion TEXT NOT NULL,
     archivo VARCHAR(255) NULL,
