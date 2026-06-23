@@ -2,18 +2,18 @@
 
 Aplicación web en **PHP 8.2** con arquitectura **MVC** propia, MySQL y panel de soporte autenticado. Los clientes crean tickets desde un formulario público sin registrarse.
 
-Documentación técnica detallada: [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md)
-
 ---
 
 ## Requisitos del servidor
 
-| Componente | Versión mínima |
-|------------|----------------|
-| PHP | 8.2+ |
-| MySQL / MariaDB | 5.7+ / 10.3+ |
-| Apache | 2.4+ con `mod_rewrite` |
-| Composer | 2.x |
+
+| Componente      | Versión mínima         |
+| --------------- | ---------------------- |
+| PHP             | 8.2+                   |
+| MySQL / MariaDB | 5.7+ / 10.3+           |
+| Apache          | 2.4+ con `mod_rewrite` |
+| Composer        | 2.x                    |
+
 
 ### Extensiones PHP necesarias
 
@@ -37,7 +37,7 @@ Estos pasos aplican en **cualquier entorno** (Windows, Linux o macOS).
 ### 1. Obtener el código
 
 ```bash
-git clone <url-del-repositorio> proyectoWebTicket
+git clone https://github.com/Bubblebug17/proyectoWebTicket/ proyectoWebTicket
 cd proyectoWebTicket
 ```
 
@@ -92,7 +92,7 @@ return [
 ];
 ```
 
-Ajustar **`database`** según las credenciales del nuevo entorno y **`app.url`** con la URL real donde se alojará el proyecto.
+Ajustar `**database**` según las credenciales del nuevo entorno y `**app.url**` con la URL real donde se alojará el proyecto.
 
 ### 5. Permisos de escritura
 
@@ -113,8 +113,8 @@ sudo chown -R www-data:www-data public/uploads
 
 El archivo `.htaccess` en la raíz redirige todas las peticiones a `index.php`. Requisitos:
 
-1. **`mod_rewrite` habilitado**
-2. **`AllowOverride All`** en el directorio del proyecto
+1. `**mod_rewrite` habilitado**
+2. `**AllowOverride All`** en el directorio del proyecto
 
 Ejemplo en `httpd.conf` o virtual host:
 
@@ -132,19 +132,13 @@ Reiniciar Apache después de cambios.
 
 Abrir en el navegador la URL configurada (ejemplo por defecto):
 
-| Recurso | URL |
-|---------|-----|
-| Formulario público | `http://localhost/proyectoWebTicket` |
-| Login soporte | `http://localhost/proyectoWebTicket/login` |
-| Dashboard | `http://localhost/proyectoWebTicket/soporte/dashboard` |
 
-**Checklist:**
+| Recurso            | URL                                                    |
+| ------------------ | ------------------------------------------------------ |
+| Formulario público | `http://localhost/proyectoWebTicket`                   |
+| Login soporte      | `http://localhost/proyectoWebTicket/login`             |
+| Dashboard          | `http://localhost/proyectoWebTicket/soporte/dashboard` |
 
-- [ ] Se muestra el formulario de creación de tickets
-- [ ] Login con usuario demo funciona
-- [ ] Dashboard lista tickets (vacío o con datos)
-- [ ] Crear un ticket y subir un adjunto funciona
-- [ ] CSS carga correctamente (`/proyectoWebTicket/public/css/app.css`)
 
 ---
 
@@ -152,13 +146,15 @@ Abrir en el navegador la URL configurada (ejemplo por defecto):
 
 Si el proyecto **no** se instala en `/proyectoWebTicket`, hay que alinear la ruta base en varios puntos. Ejemplo: mover a `https://tickets.midominio.com/` (raíz) o a `https://midominio.com/soporte/`.
 
-| Archivo | Qué cambiar |
-|---------|-------------|
-| `config/config.php` | `app.url` → URL pública completa |
-| `.htaccess` | `RewriteBase /proyectoWebTicket/` → tu subcarpeta o `/` |
-| `app/Core/Request.php` | `$basePath = '/proyectoWebTicket'` → misma ruta |
-| `app/Core/FileUpload.php` | Ruta en `getPublicUrl()` |
+
+| Archivo                            | Qué cambiar                                              |
+| ---------------------------------- | -------------------------------------------------------- |
+| `config/config.php`                | `app.url` → URL pública completa                         |
+| `.htaccess`                        | `RewriteBase /proyectoWebTicket/` → tu subcarpeta o `/`  |
+| `app/Core/Request.php`             | `$basePath = '/proyectoWebTicket'` → misma ruta          |
+| `app/Core/FileUpload.php`          | Ruta en `getPublicUrl()`                                 |
 | Vistas, controladores y middleware | Enlaces y redirecciones con prefijo `/proyectoWebTicket` |
+
 
 Buscar todas las ocurrencias:
 
@@ -182,9 +178,9 @@ Reemplazar `/proyectoWebTicket` por la ruta base del nuevo entorno (por ejemplo 
 
 1. [XAMPP](https://www.apachefriends.org/) con PHP 8.2 (ej. `C:\xampp82\`)
 2. [Composer](https://getcomposer.org/download/) apuntando al PHP de XAMPP:
-   ```
+  ```
    C:\xampp82\php\php.exe
-   ```
+  ```
 
 ### Pasos
 
@@ -256,9 +252,11 @@ sudo systemctl reload apache2
 
 Tras importar `database/schema.sql`:
 
-| Rol | Email | Contraseña |
-|-----|-------|------------|
+
+| Rol     | Email              | Contraseña |
+| ------- | ------------------ | ---------- |
 | Soporte | `soporte@demo.com` | `password` |
+
 
 Los clientes **no** tienen cuenta. Crean tickets desde el formulario público.
 
@@ -271,24 +269,6 @@ php seed_tickets.php
 ```
 
 Ejecutar solo en entornos de desarrollo.
-
----
-
-## Ejecutar pruebas
-
-El proyecto incluye tests unitarios con PHPUnit (phar local, sin dependencia extra en `composer.json`):
-
-```bash
-# Descargar PHPUnit (primera vez)
-composer run test:install
-
-# Ejecutar suite unitaria
-composer test
-# o
-composer run test:unit
-```
-
-Configuración: `phpunit.xml` — tests en `tests/Unit/`.
 
 ---
 
@@ -307,8 +287,6 @@ proyectoWebTicket/
 │   └── config.php        # Configuración BD, app y sesión
 ├── database/
 │   └── schema.sql        # Esquema MySQL
-├── docs/
-│   └── ARQUITECTURA.md   # Informe técnico del sistema
 ├── public/
 │   ├── css/app.css       # Estilos globales
 │   ├── js/               # Validación de formularios, upload
@@ -325,83 +303,24 @@ proyectoWebTicket/
 
 ## Rutas principales
 
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| GET | `/` | Formulario público de tickets |
-| POST | `/ticket/create` | Enviar ticket |
-| GET | `/login` | Login soporte |
-| POST | `/login` | Autenticación |
-| GET | `/logout` | Cerrar sesión |
-| GET | `/soporte/dashboard` | Dashboard con resumen y listado |
-| GET | `/soporte/tickets` | Listado completo |
-| GET | `/soporte/tickets/view?id={id}` | Detalle y mensajes |
-| POST | `/soporte/tickets/responder` | Responder ticket |
-| POST | `/soporte/tickets/cambiar-estado` | Cambiar estado |
-| GET | `/soporte/reportes` | Reportes gráficos |
+
+| Método | Ruta                              | Descripción                     |
+| ------ | --------------------------------- | ------------------------------- |
+| GET    | `/`                               | Formulario público de tickets   |
+| POST   | `/ticket/create`                  | Enviar ticket                   |
+| GET    | `/login`                          | Login soporte                   |
+| POST   | `/login`                          | Autenticación                   |
+| GET    | `/logout`                         | Cerrar sesión                   |
+| GET    | `/soporte/dashboard`              | Dashboard con resumen y listado |
+| GET    | `/soporte/tickets`                | Listado completo                |
+| GET    | `/soporte/tickets/view?id={id}`   | Detalle y mensajes              |
+| POST   | `/soporte/tickets/responder`      | Responder ticket                |
+| POST   | `/soporte/tickets/cambiar-estado` | Cambiar estado                  |
+| GET    | `/soporte/reportes`               | Reportes gráficos               |
+
 
 Todas las rutas de soporte requieren sesión con rol `soporte`.
 
----
-
-## Solución de problemas
-
-### `Class not found` o errores de autoload
-
-```bash
-composer install
-composer dump-autoload
-```
-
-### `404 - Página no encontrada`
-
-- Verificar que Apache tenga `mod_rewrite` activo
-- Confirmar que `.htaccess` existe en la raíz del proyecto
-- Revisar `AllowOverride All` en la configuración del virtual host
-- Comprobar que `RewriteBase` en `.htaccess` coincide con la subcarpeta del proyecto
-
-### Error de conexión a MySQL
-
-- Servicio MySQL en ejecución
-- Credenciales correctas en `config/config.php`
-- Base de datos `ticket_system` creada e importada
-
-### CSS o JS no cargan
-
-- Verificar que la ruta base `/proyectoWebTicket` en las vistas coincida con la URL real
-- Comprobar que `public/css/app.css` y `public/js/` son accesibles vía navegador
-
-### No se pueden subir archivos
-
-- Carpeta `public/uploads/` existe
-- Permisos de escritura para el usuario de Apache (`www-data`, `daemon`, etc.)
-- Límite de PHP: `upload_max_filesize` y `post_max_size` ≥ 10M
-
-### Login correcto pero redirección fallida
-
-- Revisar prefijo `/proyectoWebTicket` en `AuthController`, `AuthMiddleware` y redirecciones del router
-
----
-
-## Funcionalidades
-
-### Formulario público
-
-- Creación de tickets sin registro
-- Campos: nombre, apellido, correo, celular, tipo de conexión (ISP), problema, descripción
-- Adjuntos: imágenes y vídeos (máx. 10 MB) con vista previa
-- Validación en cliente (`public/js/form-validation.js`) y servidor
-
-### Panel de soporte
-
-- Dashboard con contadores por estado
-- Listado paginado y detalle de tickets
-- Respuestas vía mensajes
-- Cambio de estado: `abierto`, `en_proceso`, `cerrado`
-- Asignación automática al responder un ticket sin agente
-- Reportes con gráficos (Highcharts)
-
----
-
 ## Licencia
 
-MIT License — ver [`LICENSE`](LICENSE).
+MIT License — ver `[LICENSE](LICENSE)`.
