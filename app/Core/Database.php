@@ -37,12 +37,22 @@ class Database
         }
 
         try {
+            $host = (string) self::$config['host'];
+            $port = isset(self::$config['port']) ? (int) self::$config['port'] : 0;
+            if ($port < 1 && preg_match('/^(.+):(\d+)$/', $host, $hostPort) === 1) {
+                $host = $hostPort[1];
+                $port = (int) $hostPort[2];
+            }
+
             $dsn = sprintf(
-                "mysql:host=%s;dbname=%s;charset=%s",
-                self::$config['host'],
+                'mysql:host=%s;dbname=%s;charset=%s',
+                $host,
                 self::$config['dbname'],
                 self::$config['charset']
             );
+            if ($port > 0) {
+                $dsn .= ';port=' . $port;
+            }
 
             $options = [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,

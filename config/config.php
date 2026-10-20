@@ -2,10 +2,10 @@
 
 return [
     'database' => [
-        'host' => 'localhost',
-        'dbname' => 'ticket_system',
-        'username' => 'root',
-        'password' => '',
+        'host' => '162.0.228.203:3306',
+        'dbname' => 'creantis_efsrt_proy',
+        'username' => 'creantis_efsrt_proy',
+        'password' => 't#a7+f3dPJ{d',
         'charset' => 'utf8mb4'
     ],
     'app' => [

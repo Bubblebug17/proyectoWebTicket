@@ -11,9 +11,9 @@ La URL de desarrollo es `http://localhost/proyectoWebTicket`.
 | Componente | Versión mínima |
 | --- | --- |
 | PHP | 8.2+ |
-| MySQL / MariaDB | 5.7+ / 10.3+ |
+| MySQL / MariaDB | 5.7+ / 10.3+, remoto |
 | Apache | 2.4+ con `mod_rewrite` |
-| Composer | 2.x |
+| Composer | 2.x, opcional |
 
 Extensiones PHP: `pdo_mysql`, `mbstring`, `fileinfo` y `session`.
 
@@ -25,7 +25,42 @@ php -m
 
 ## Levantar la instancia
 
-Estos pasos dejan la aplicación lista para entrar con los usuarios de demostración. En XAMPP con la contraseña de `root` vacía, `config/config.php` ya apunta a esa base y no hace falta editarlo.
+La base de datos es remota. El host, el nombre y el usuario están en `config/config.php`. No hace falta un MySQL local.
+
+### Instancia independiente (desde cero, otra carpeta)
+
+Doble clic en **`instalar_instancia.bat`** (o con ruta custom: `instalar_instancia.bat D:\MiCarpeta`):
+
+1. Copia el proyecto a `%USERPROFILE%\IntranetTambo-instancia` (sin `vendor/`, sin `runtime/` previo del origen).
+2. Marca la instancia como **standalone** (`runtime/standalone.flag`): no usa XAMPP, solo Apache portable.
+3. Ejecuta `montar.bat` en esa copia (descarga PHP/Apache, BD remota de `config/config.php`).
+
+Puerto HTTP: el primero libre entre **80 → 8080 → 8081 → 8082** (se guarda en `runtime/apache-port.txt`).
+
+### Montar en la carpeta actual
+
+En Windows, **doble clic en `montar.bat`** (el proyecto puede estar en cualquier carpeta, no hace falta XAMPP):
+
+1. **Descarga e instala** PHP 8.2 (Thread Safe) y Apache 2.4 en `runtime/` si aún no existen (ver `tools/runtime-manifest.json`).
+2. Genera `runtime/apache/conf/httpd-portable.conf` con alias `/proyectoWebTicket` apuntando a la carpeta del repo.
+3. Ejecuta `composer install` con `tools/composer.phar` (también se descarga automáticamente). Si falla, crea `vendor/autoload.php`.
+4. Crea `public/uploads` si falta.
+5. Aplica `database/schema.sql` en la base remota de `config/config.php` (idempotente).
+6. Abre el login en la URL que responda:
+   - **XAMPP ya instalado:** `http://localhost/proyectoWebTicket/login` (puerto 80, misma carpeta del repo).
+   - **Solo runtime portable:** `http://127.0.0.1:{puerto}/proyectoWebTicket/login` (puerto en `runtime/apache-port.txt`, por defecto **8080** si el 80 está ocupado).
+
+No se crea otra copia del proyecto: `runtime/` es PHP y Apache descargados **dentro** del mismo repositorio.
+
+**Requisitos en PC nueva:** Windows 10/11, conexión a Internet la primera vez, y [Visual C++ Redistributable x64](https://aka.ms/vs/17/release/vc_redist.x64.exe) (Apache y PHP lo necesitan).
+
+Para volver a descargar PHP/Apache:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools\provision_runtime.ps1 -Force
+```
+
+La carpeta `runtime/` no se versiona en git (ver `.gitignore`).
 
 ### 1. Colocar el código en el servidor web
 
@@ -50,63 +85,24 @@ Si Composer usa otro PHP distinto del de XAMPP:
 C:\xampp82\php\php.exe C:\ProgramData\ComposerSetup\bin\composer.phar install
 ```
 
-### 3. Crear la base de datos
+### 3. Preparar la base remota
 
-Iniciar **Apache** y **MySQL**. Luego importar el esquema una sola vez:
-
-```bash
-mysql -u root -p < database/schema.sql
-```
-
-En XAMPP, con `root` sin contraseña:
+`montar.bat` ya ejecuta este paso. A mano:
 
 ```powershell
-C:\xampp82\mysql\bin\mysql.exe -u root --default-character-set=utf8mb4 < database\schema.sql
+C:\xampp82\php\php.exe tools\montar.php
 ```
 
-También se puede importar `database/schema.sql` desde phpMyAdmin (`http://localhost/phpmyadmin`).
-
-El script crea la base `ticket_system` y estas tablas:
+Lee `config/config.php`, se conecta a esa base y aplica `database/schema.sql` sin crear otra base de datos. Deja:
 
 - `sucursales`: TB-MIR Miraflores, TB-SBO San Borja y TB-OLI Los Olivos
-- `usuarios`: perfiles de tienda, soporte y un encargado por área
+- `usuarios`: tienda, soporte y un encargado por área
 - `tipos_ticket` y `subtipos_ticket`: 4 áreas y 6 motivos por área
-- `tickets` y `mensajes`: vacías hasta que se registre un ticket o se ejecute el seeder
-
-`schema.sql` usa `CREATE TABLE IF NOT EXISTS`. Si `ticket_system` ya existe de una versión anterior, no actualiza columnas viejas. Para una instancia limpia:
-
-```sql
-DROP DATABASE IF EXISTS ticket_system;
-```
-
-y volver a importar el archivo.
+- `tickets` y `mensajes`: vacías hasta registrar un ticket o ejecutar el seeder
 
 ### 4. Revisar la configuración
 
-`config/config.php` de desarrollo:
-
-```php
-return [
-    'database' => [
-        'host' => 'localhost',
-        'dbname' => 'ticket_system',
-        'username' => 'root',
-        'password' => '',
-        'charset' => 'utf8mb4'
-    ],
-    'app' => [
-        'name' => 'Intranet Tambo',
-        'url' => 'http://localhost/proyectoWebTicket',
-        'timezone' => 'America/Lima'
-    ],
-    'session' => [
-        'lifetime' => 3600,
-        'name' => 'TICKET_SESSION'
-    ]
-];
-```
-
-Cambiar usuario, contraseña y `app.url` si el entorno no es el de XAMPP local.
+La conexión remota y la URL pública están en `config/config.php`. Si el servidor de base cambia, editar solo `database`. `app.url` debe coincidir con la dirección del navegador.
 
 ### 5. Carpeta de adjuntos
 
@@ -228,7 +224,7 @@ En la raíz del dominio, `RewriteBase` pasa a `/` y `$basePath` queda vacío.
 ```bash
 sudo apt update
 sudo apt install php8.2 php8.2-cli php8.2-mysql php8.2-mbstring php8.2-xml php8.2-curl \
-                 apache2 mysql-server composer
+                 apache2 composer
 sudo a2enmod rewrite
 sudo systemctl restart apache2
 ```
@@ -240,7 +236,7 @@ composer install
 mkdir -p public/uploads
 sudo chown -R www-data:www-data .
 sudo chmod -R 775 public/uploads
-mysql -u root -p < database/schema.sql
+php tools/montar.php
 ```
 
 Virtual host opcional en `/etc/apache2/sites-available/proyectoWebTicket.conf`:
