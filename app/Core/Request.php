@@ -73,22 +73,6 @@ class Request
     }
 
     /**
-     * Verifica si la petición es POST
-     */
-    public function isPost(): bool
-    {
-        return $this->getMethod() === 'POST';
-    }
-
-    /**
-     * Verifica si la petición es GET
-     */
-    public function isGet(): bool
-    {
-        return $this->getMethod() === 'GET';
-    }
-
-    /**
      * Limpia strings de etiquetas HTML, entidades peligrosas y caracteres de control.
      */
     private function sanitizeValue(mixed $value): mixed

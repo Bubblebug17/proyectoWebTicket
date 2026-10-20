@@ -5,42 +5,7 @@
 (function () {
     'use strict';
 
-    const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const CELULAR_REGEX = /^9\d{8}$/;
-
     const FIELD_RULES = {
-        nombre: {
-            validate(value) {
-                const trimmed = value.trim();
-                if (!trimmed) return 'El nombre es obligatorio';
-                if (trimmed.length < 3) return 'El nombre debe tener al menos 3 caracteres';
-                return '';
-            }
-        },
-        apellido: {
-            validate(value) {
-                const trimmed = value.trim();
-                if (!trimmed) return 'El apellido es obligatorio';
-                if (trimmed.length < 3) return 'El apellido debe tener al menos 3 caracteres';
-                return '';
-            }
-        },
-        correo: {
-            validate(value) {
-                const trimmed = value.trim();
-                if (!trimmed) return 'El correo es obligatorio';
-                if (!EMAIL_REGEX.test(trimmed)) return 'Ingrese un correo electrónico válido';
-                return '';
-            }
-        },
-        celular: {
-            validate(value) {
-                const digits = value.replace(/\s/g, '');
-                if (!digits) return 'El celular es obligatorio';
-                if (!CELULAR_REGEX.test(digits)) return 'Ingrese un celular peruano válido (9 dígitos, inicia con 9)';
-                return '';
-            }
-        },
         descripcion: {
             validate(value) {
                 const trimmed = value.trim();
@@ -49,22 +14,84 @@
                 return '';
             }
         },
-        isp: {
+        tipo_id: {
             validate(value) {
-                const permitidos = ['fibra_optica', 'wisp_inalambrico'];
-                if (!value) return 'Debe seleccionar un ISP';
-                if (!permitidos.includes(value)) return 'Seleccione un tipo de proveedor válido';
+                if (!value) return 'Debe seleccionar un tipo';
+                const catalogo = leerCatalogo();
+                const existe = catalogo.some(function (tipo) {
+                    return String(tipo.id) === String(value);
+                });
+                if (catalogo.length && !existe) return 'Seleccione un tipo válido';
                 return '';
             }
         },
-        problema: {
-            validate(value) {
-                const trimmed = value.trim();
-                if (!trimmed) return 'El problema es obligatorio';
+        subtipo_id: {
+            validate(value, form) {
+                const tipoId = form.elements.tipo_id ? form.elements.tipo_id.value : '';
+                if (!tipoId) return 'Seleccione primero el tipo';
+                if (!value) return 'Debe seleccionar un motivo';
+                const catalogo = leerCatalogo();
+                const tipo = catalogo.find(function (item) {
+                    return String(item.id) === String(tipoId);
+                });
+                if (!tipo) return 'Seleccione un motivo válido para el tipo';
+                const existe = (tipo.subtipos || []).some(function (subtipo) {
+                    return String(subtipo.id) === String(value);
+                });
+                if (!existe) return 'El motivo no corresponde al tipo seleccionado';
                 return '';
             }
         }
     };
+
+    function leerCatalogo() {
+        const nodo = document.getElementById('catalogo-ticket');
+        if (!nodo) return [];
+        try {
+            const data = JSON.parse(nodo.textContent || '[]');
+            return Array.isArray(data) ? data : [];
+        } catch (error) {
+            return [];
+        }
+    }
+
+    function filtrarMotivos(form) {
+        const tipo = form.elements.tipo_id;
+        const motivo = form.elements.subtipo_id;
+        if (!tipo || !motivo) return;
+
+        const catalogo = leerCatalogo();
+        if (!catalogo.length) return;
+
+        const tipoId = tipo.value;
+        const seleccionado = motivo.value || motivo.dataset.selected || '';
+        const grupo = catalogo.find(function (item) {
+            return String(item.id) === String(tipoId);
+        });
+
+        motivo.innerHTML = '';
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = tipoId ? 'Seleccione un motivo' : 'Seleccione primero el tipo';
+        motivo.appendChild(placeholder);
+
+        if (!grupo) {
+            motivo.disabled = true;
+            return;
+        }
+
+        motivo.disabled = false;
+        (grupo.subtipos || []).forEach(function (subtipo) {
+            const option = document.createElement('option');
+            option.value = String(subtipo.id);
+            option.setAttribute('data-tipo', String(tipoId));
+            option.textContent = subtipo.nombre;
+            if (String(subtipo.id) === String(seleccionado)) {
+                option.selected = true;
+            }
+            motivo.appendChild(option);
+        });
+    }
 
     function getFeedbackElement(field) {
         const group = field.closest('.form-group');
@@ -88,7 +115,7 @@
         const rule = FIELD_RULES[field.name];
         if (!rule) return true;
 
-        const message = rule.validate(field.value);
+        const message = rule.validate(field.value, field.form);
         setFieldValidity(field, message);
         return message === '';
     }
@@ -131,6 +158,19 @@
 
     function bindForm(form) {
         form.setAttribute('novalidate', 'novalidate');
+        filtrarMotivos(form);
+
+        if (form.elements.tipo_id) {
+            form.elements.tipo_id.addEventListener('change', function () {
+                if (form.elements.subtipo_id) {
+                    form.elements.subtipo_id.dataset.selected = '';
+                }
+                filtrarMotivos(form);
+                if (form.elements.subtipo_id) {
+                    validateField(form.elements.subtipo_id);
+                }
+            });
+        }
 
         Object.keys(FIELD_RULES).forEach(function (fieldName) {
             const field = form.elements[fieldName];

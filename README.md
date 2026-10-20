@@ -1,6 +1,6 @@
 # SoporteTicket — Sistema de Gestión de Tickets
 
-Aplicación web en **PHP 8.2** con arquitectura **MVC** propia, MySQL y panel de soporte autenticado. Los clientes crean tickets desde un formulario público sin registrarse.
+Aplicación web en **PHP 8.2** con arquitectura **MVC** propia y MySQL. La intranet atiende tickets de sucursales Tambo. El registro de tickets exige iniciar sesión.
 
 ---
 
@@ -135,8 +135,8 @@ Abrir en el navegador la URL configurada (ejemplo por defecto):
 
 | Recurso            | URL                                                    |
 | ------------------ | ------------------------------------------------------ |
-| Formulario público | `http://localhost/proyectoWebTicket`                   |
-| Login soporte      | `http://localhost/proyectoWebTicket/login`             |
+| Intranet           | `http://localhost/proyectoWebTicket`                   |
+| Login              | `http://localhost/proyectoWebTicket/login`             |
 | Dashboard          | `http://localhost/proyectoWebTicket/soporte/dashboard` |
 
 
@@ -152,7 +152,7 @@ Si el proyecto **no** se instala en `/proyectoWebTicket`, hay que alinear la rut
 | `config/config.php`                | `app.url` → URL pública completa                         |
 | `.htaccess`                        | `RewriteBase /proyectoWebTicket/` → tu subcarpeta o `/`  |
 | `app/Core/Request.php`             | `$basePath = '/proyectoWebTicket'` → misma ruta          |
-| `app/Core/FileUpload.php`          | Ruta en `getPublicUrl()`                                 |
+| `app/Views/soporte/view_ticket.php` | URL de los adjuntos en `public/uploads`                 |
 | Vistas, controladores y middleware | Enlaces y redirecciones con prefijo `/proyectoWebTicket` |
 
 
@@ -253,19 +253,19 @@ sudo systemctl reload apache2
 Tras importar `database/schema.sql`:
 
 
-| Rol     | Email              | Contraseña |
-| ------- | ------------------ | ---------- |
+| Rol | Email | Contraseña |
+| --- | --- | --- |
+| Responsable de tienda | `tienda@demo.com` | `password` |
 | Soporte | `soporte@demo.com` | `password` |
-
-
-Los clientes **no** tienen cuenta. Crean tickets desde el formulario público.
+| Logístico | `area@demo.com` | `password` |
+| Tecnológico | `tecnologia@demo.com` | `password` |
+| Administrativo | `administracion@demo.com` | `password` |
+| Otros | `otros@demo.com` | `password` |
 
 ### Datos de ejemplo (opcional)
 
-Script auxiliar para poblar tickets de prueba:
-
 ```bash
-php seed_tickets.php
+php database/seed_tickets_mensajes.php
 ```
 
 Ejecutar solo en entornos de desarrollo.
@@ -306,20 +306,22 @@ proyectoWebTicket/
 
 | Método | Ruta                              | Descripción                     |
 | ------ | --------------------------------- | ------------------------------- |
-| GET    | `/`                               | Formulario público de tickets   |
+| GET    | `/`                               | Redirige al inicio del perfil   |
+| GET    | `/ticket/create`                  | Formulario de ticket (intranet) |
 | POST   | `/ticket/create`                  | Enviar ticket                   |
-| GET    | `/login`                          | Login soporte                   |
+| GET    | `/login`                          | Login de la intranet            |
 | POST   | `/login`                          | Autenticación                   |
 | GET    | `/logout`                         | Cerrar sesión                   |
 | GET    | `/soporte/dashboard`              | Dashboard con resumen y listado |
 | GET    | `/soporte/tickets`                | Listado completo                |
 | GET    | `/soporte/tickets/view?id={id}`   | Detalle y mensajes              |
+| POST   | `/soporte/tickets/derivar`        | Derivar al encargado de área    |
 | POST   | `/soporte/tickets/responder`      | Responder ticket                |
 | POST   | `/soporte/tickets/cambiar-estado` | Cambiar estado                  |
 | GET    | `/soporte/reportes`               | Reportes gráficos               |
 
 
-Todas las rutas de soporte requieren sesión con rol `soporte`.
+El formulario de tickets exige sesión. El seguimiento lo usan soporte y el encargado de área. Dashboard, derivación y reportes son solo de soporte.
 
 ## Licencia
 

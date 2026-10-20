@@ -19,13 +19,13 @@ class AuthController extends BaseController
     }
 
     /**
-     * Muestra el formulario de login (solo para soporte)
+     * Muestra el formulario de login
      */
     public function login(): void
     {
-        // Si ya está autenticado, redirigir al dashboard de soporte
         if ($this->session->has('user')) {
-            $this->redirect('/proyectoWebTicket/soporte/dashboard');
+            $user = $this->getCurrentUser();
+            $this->redirect(Usuario::rutaInicio($user['tipo'] ?? ''));
             return;
         }
 
@@ -33,7 +33,7 @@ class AuthController extends BaseController
     }
 
     /**
-     * Autentica al usuario (solo soporte)
+     * Autentica al usuario de la intranet
      */
     public function authenticate(): void
     {
@@ -52,17 +52,27 @@ class AuthController extends BaseController
             return;
         }
 
-        // Solo permitir login de usuarios tipo soporte
-        if ($usuario->getTipo() !== 'soporte') {
-            $this->view('auth/login', ['error' => 'Acceso denegado']);
+        if (!Usuario::perfilEsValido($usuario->getTipo())) {
+            $this->view('auth/login', ['error' => 'El perfil de este usuario no tiene acceso a la intranet']);
             return;
         }
 
-        // Guardar usuario en sesión
         $this->session->set('user', $usuario->toArray());
+        $this->redirect(Usuario::rutaInicio($usuario->getTipo()));
+    }
 
-        // Redirigir al dashboard de soporte
-        $this->redirect('/proyectoWebTicket/soporte/dashboard');
+    /**
+     * Entrada de la intranet. El formulario público ya no existe.
+     */
+    public function inicio(): void
+    {
+        $user = $this->getCurrentUser();
+        if (!$user) {
+            $this->redirect('/proyectoWebTicket/login');
+            return;
+        }
+
+        $this->redirect(Usuario::rutaInicio($user['tipo'] ?? ''));
     }
 
     /**

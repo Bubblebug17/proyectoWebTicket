@@ -3,6 +3,7 @@
 namespace App\Core\Middleware;
 
 use App\Core\Session;
+use App\Entities\Usuario;
 
 /**
  * Middleware para verificar autenticación y roles
@@ -27,22 +28,16 @@ class AuthMiddleware
             return false;
         }
 
-        // Verificar rol si está especificado
-        if (isset($middleware['role'])) {
-            $user = $this->session->get('user');
-            $userRole = $user['tipo'] ?? '';
+        $user = $this->session->get('user');
+        $userRole = $user['tipo'] ?? '';
+        $permitidos = $middleware['roles'] ?? null;
+        if ($permitidos === null && isset($middleware['role'])) {
+            $permitidos = [$middleware['role']];
+        }
 
-            if ($userRole !== $middleware['role']) {
-                // Redirigir al dashboard correspondiente
-                if ($userRole === 'cliente') {
-                    header('Location: /proyectoWebTicket/cliente/dashboard');
-                } elseif ($userRole === 'soporte') {
-                    header('Location: /proyectoWebTicket/soporte/dashboard');
-                } else {
-                    header('Location: /proyectoWebTicket/login');
-                }
-                return false;
-            }
+        if (is_array($permitidos) && !in_array($userRole, $permitidos, true)) {
+            header('Location: ' . Usuario::rutaInicio($userRole));
+            return false;
         }
 
         return true;

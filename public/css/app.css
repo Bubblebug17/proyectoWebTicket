@@ -1,30 +1,31 @@
 /* =============================================
-   SoporteTicket — Design System (global)
+   Soporte Tambo — Design System (global)
    ============================================= */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-    --color-bg: #f8f9fa;
+    --color-bg: #f6f1f8;
     --color-surface: #ffffff;
-    --color-text: #212529;
-    --color-text-secondary: #6c757d;
-    --color-text-muted: #adb5bd;
-    --color-border: #dee2e6;
-    --color-border-light: #e9ecef;
+    --color-text: #2b1433;
+    --color-text-secondary: #6b5872;
+    --color-text-muted: #a894ae;
+    --color-border: #eadff0;
+    --color-border-light: #f3eaf6;
 
-    --color-primary: #0d6efd;
-    --color-primary-hover: #0b5ed7;
-    --color-primary-light: #e7f1ff;
+    --color-primary: #7a2182;
+    --color-primary-hover: #5e1864;
+    --color-primary-light: #f6e8f8;
+    --color-accent: #ffd100;
 
     --color-success: #198754;
-    --color-danger: #dc3545;
-    --color-danger-light: #f8d7da;
+    --color-danger: #c62828;
+    --color-danger-light: #fde8e8;
 
-    --color-status-open: #0d6efd;
-    --color-status-open-bg: #e7f1ff;
-    --color-status-progress: #fd7e14;
-    --color-status-progress-bg: #fff3e6;
+    --color-status-open: #7a2182;
+    --color-status-open-bg: #f6e8f8;
+    --color-status-progress: #c48a00;
+    --color-status-progress-bg: #fff6cc;
     --color-status-closed: #6c757d;
     --color-status-closed-bg: #e9ecef;
 
@@ -89,8 +90,8 @@ a:hover {
 /* --- Header / Nav --- */
 
 .site-header {
-    background: var(--color-surface);
-    border-bottom: 1px solid var(--color-border-light);
+    background: var(--color-primary);
+    border-bottom: 4px solid var(--color-accent);
     padding: 14px 0;
 }
 
@@ -107,24 +108,28 @@ a:hover {
     gap: 10px;
     font-size: 1.125rem;
     font-weight: 700;
-    color: var(--color-text);
+    color: #fff;
     text-decoration: none;
 }
 
 .brand:hover {
-    color: var(--color-text);
+    color: var(--color-accent);
 }
 
-.brand__icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    background: var(--color-primary-light);
-    color: var(--color-primary);
-    border-radius: var(--radius-sm);
+.brand__mark {
+    width: 42px;
+    height: 42px;
+    object-fit: contain;
     flex-shrink: 0;
+    display: block;
+}
+
+.auth-logo {
+    display: block;
+    width: 100%;
+    height: auto;
+    margin: 0 auto 22px;
+    border-radius: var(--radius-md);
 }
 
 .site-nav {
@@ -139,7 +144,7 @@ a:hover {
     align-items: center;
     gap: 6px;
     padding: 8px 14px;
-    color: var(--color-text-secondary);
+    color: #fff;
     font-weight: 500;
     font-size: 0.9375rem;
     border-radius: var(--radius-sm);
@@ -147,8 +152,24 @@ a:hover {
 }
 
 .site-nav a:hover {
-    color: var(--color-text);
-    background: var(--color-bg);
+    color: var(--color-accent);
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.nav-user {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    color: #fff;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1.2;
+    padding: 0 8px;
+}
+
+.nav-user span {
+    color: var(--color-accent);
+    font-weight: 500;
 }
 
 .site-nav a.is-active {
@@ -662,7 +683,7 @@ form {
 /* --- Auth card --- */
 
 .auth-card {
-    max-width: 420px;
+    max-width: 640px;
     margin: 0 auto;
 }
 

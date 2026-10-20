@@ -58,10 +58,12 @@ ob_start();
                 <thead>
                     <tr>
                         <th>ID</th>
-                        <th>Cliente</th>
-                        <th>Problema</th>
-                        <th>ISP</th>
+                        <th>Solicitante</th>
+                        <th>Sucursal</th>
+                        <th>Tipo</th>
+                        <th>Motivo</th>
                         <th>Estado</th>
+                        <th>Encargado</th>
                         <th>Fecha</th>
                         <th>Acciones</th>
                     </tr>
@@ -74,13 +76,15 @@ ob_start();
                                 <span class="cell-client-name"><?= htmlspecialchars($ticket['nombre'] . ' ' . $ticket['apellido']) ?></span>
                                 <span class="cell-client-email"><?= htmlspecialchars($ticket['correo']) ?></span>
                             </td>
-                            <td><?= htmlspecialchars($ticket['problema']) ?></td>
-                            <td><?= htmlspecialchars(\App\Entities\Ticket::etiquetaIsp($ticket['isp'])) ?></td>
+                            <td><?= htmlspecialchars($ticket['sucursal']) ?></td>
+                            <td><?= htmlspecialchars($ticket['tipo_nombre']) ?></td>
+                            <td><?= htmlspecialchars($ticket['subtipo_nombre']) ?></td>
                             <td>
                                 <span class="badge badge-<?= $ticket['estado'] ?>">
                                     <?= ucfirst(str_replace('_', ' ', $ticket['estado'])) ?>
                                 </span>
                             </td>
+                            <td><?= htmlspecialchars($ticket['encargado_nombre'] ?: 'Sin derivar') ?></td>
                             <td><?= date('d/m/Y H:i', strtotime($ticket['fecha_creacion'])) ?></td>
                             <td>
                                 <a href="/proyectoWebTicket/soporte/tickets/view?id=<?= $ticket['id'] ?>" class="action-link">

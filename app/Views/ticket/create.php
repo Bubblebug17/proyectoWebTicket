@@ -1,12 +1,12 @@
 <?php
-$title = 'Crear Ticket de Soporte';
+$title = 'Nuevo ticket de sucursal';
 $narrowLayout = true;
 ob_start();
 ?>
 
 <div class="card">
-    <h1 class="card__title">Formulario de Ticket de Soporte</h1>
-    <p class="card__subtitle">Complete el siguiente formulario para reportar su problema. Nos pondremos en contacto con usted a la brevedad posible.</p>
+    <h1 class="card__title">Ticket de sucursal</h1>
+    <p class="card__subtitle">La incidencia queda a nombre de su usuario de intranet.</p>
 
     <?php if (!empty($errors)): ?>
         <div class="alert alert-error">
@@ -20,67 +20,65 @@ ob_start();
 
     <form method="POST" action="/proyectoWebTicket/ticket/create" enctype="multipart/form-data" id="ticketForm" class="needs-validation" novalidate>
         <section class="form-section">
-            <h2 class="form-section__title">Datos Personales</h2>
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="nombre">Nombre <span class="required">*</span></label>
-                    <input type="text" id="nombre" name="nombre" placeholder="Nombre"
-                           value="<?= htmlspecialchars($old['nombre'] ?? '') ?>">
-                    <div class="invalid-feedback"></div>
-                </div>
-                <div class="form-group">
-                    <label for="apellido">Apellido <span class="required">*</span></label>
-                    <input type="text" id="apellido" name="apellido" placeholder="Apellido"
-                           value="<?= htmlspecialchars($old['apellido'] ?? '') ?>">
-                    <div class="invalid-feedback"></div>
-                </div>
+            <h2 class="form-section__title">Datos del solicitante</h2>
+            <div class="detail-grid">
+                <p><strong>Nombre:</strong> <?= htmlspecialchars($solicitante['nombre'] ?? '') ?></p>
+                <p><strong>Apellido:</strong> <?= htmlspecialchars($solicitante['apellido'] ?? '') ?></p>
+                <p><strong>Sucursal:</strong> <?= htmlspecialchars($solicitante['sucursal_etiqueta'] ?? '') ?></p>
             </div>
+        </section>
+
+        <section class="form-section">
+            <h2 class="form-section__title">Clasificación</h2>
             <div class="form-row">
                 <div class="form-group">
-                    <label for="correo">Correo Electrónico <span class="required">*</span></label>
-                    <input type="email" id="correo" name="correo" placeholder="correo@ejemplo.com"
-                           value="<?= htmlspecialchars($old['correo'] ?? '') ?>" autocomplete="email">
+                    <label for="tipo_id">Tipo <span class="required">*</span></label>
+                    <select id="tipo_id" name="tipo_id">
+                        <option value="">Seleccione un tipo</option>
+                        <?php foreach ($catalogo ?? [] as $tipo): ?>
+                            <option value="<?= (int) $tipo['id'] ?>"
+                                <?= (string) ($old['tipo_id'] ?? '') === (string) $tipo['id'] ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($tipo['nombre']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
                     <div class="invalid-feedback"></div>
                 </div>
                 <div class="form-group">
-                    <label for="celular">Celular <span class="required">*</span></label>
-                    <input type="tel" id="celular" name="celular" placeholder="999 999 999"
-                           value="<?= htmlspecialchars($old['celular'] ?? '') ?>" autocomplete="tel">
+                    <label for="subtipo_id">Motivo <span class="required">*</span></label>
+                    <?php
+                    $tipoSeleccionado = (string) ($old['tipo_id'] ?? '');
+                    $motivosDelTipo = [];
+                    foreach ($catalogo ?? [] as $tipo) {
+                        if ((string) $tipo['id'] === $tipoSeleccionado) {
+                            $motivosDelTipo = $tipo['subtipos'];
+                            break;
+                        }
+                    }
+                    ?>
+                    <select id="subtipo_id" name="subtipo_id"
+                            data-selected="<?= (int) ($old['subtipo_id'] ?? 0) ?>"
+                            <?= $tipoSeleccionado === '' ? 'disabled' : '' ?>>
+                        <option value=""><?= $tipoSeleccionado === '' ? 'Seleccione primero el tipo' : 'Seleccione un motivo' ?></option>
+                        <?php foreach ($motivosDelTipo as $subtipo): ?>
+                            <option value="<?= (int) $subtipo['id'] ?>"
+                                    data-tipo="<?= htmlspecialchars($tipoSeleccionado) ?>"
+                                <?= (string) ($old['subtipo_id'] ?? '') === (string) $subtipo['id'] ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($subtipo['nombre']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
                     <div class="invalid-feedback"></div>
                 </div>
             </div>
         </section>
 
         <section class="form-section">
-            <h2 class="form-section__title">Detalles Técnicos</h2>
+            <h2 class="form-section__title">Detalle de la incidencia</h2>
             <div class="form-group">
-                <label for="isp">Tipo de conexión <span class="required">*</span></label>
-                <select id="isp" name="isp">
-                    <option value="">Seleccione un tipo de conexión</option>
-                    <?php foreach ($ispOpciones ?? [] as $valor => $etiqueta): ?>
-                        <option value="<?= htmlspecialchars($valor) ?>"
-                            <?= ($old['isp'] ?? '') === $valor ? 'selected' : '' ?>>
-                            <?= htmlspecialchars($etiqueta) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-                <div class="invalid-feedback"></div>
-            </div>
-        </section>
-
-        <section class="form-section">
-            <h2 class="form-section__title">Descripción del Problema</h2>
-            <div class="form-group">
-                <label for="problema">Asunto / Problema <span class="required">*</span></label>
-                <input type="text" id="problema" name="problema"
-                       placeholder="Resumen breve del problema"
-                       value="<?= htmlspecialchars($old['problema'] ?? '') ?>">
-                <div class="invalid-feedback"></div>
-            </div>
-            <div class="form-group">
-                <label for="descripcion">Descripción Detallada <span class="required">*</span></label>
+                <label for="descripcion">Descripción detallada <span class="required">*</span></label>
                 <textarea id="descripcion" name="descripcion"
-                          placeholder="Describa el problema con el mayor detalle posible"><?= htmlspecialchars($old['descripcion'] ?? '') ?></textarea>
+                          placeholder="Describa lo ocurrido en la sucursal, productos o equipos involucrados y desde cuándo sucede"><?= htmlspecialchars($old['descripcion'] ?? '') ?></textarea>
                 <div class="invalid-feedback"></div>
             </div>
         </section>
@@ -113,8 +111,9 @@ ob_start();
     </form>
 </div>
 
+<script type="application/json" id="catalogo-ticket"><?= json_encode($catalogo ?? [], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
 <script src="/proyectoWebTicket/public/js/file-upload.js"></script>
-<script src="/proyectoWebTicket/public/js/form-validation.js"></script>
+<script src="/proyectoWebTicket/public/js/form-validation.js?v=sucursales"></script>
 
 <?php
 $content = ob_get_clean();

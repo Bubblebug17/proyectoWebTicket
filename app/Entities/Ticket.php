@@ -3,27 +3,23 @@
 namespace App\Entities;
 
 /**
- * Entidad Ticket
+ * Entidad Ticket de una sucursal Tambo.
  */
 class Ticket
 {
-    /** @var array<string, string> valor BD => etiqueta visible */
-    public const ISP_OPCIONES = [
-        'fibra_optica' => 'Fibra Óptica',
-        'wisp_inalambrico' => 'WISP / Inalámbrico',
-    ];
-
     private ?int $id;
     private string $nombre;
     private string $apellido;
     private string $correo;
     private string $celular;
-    private string $isp; // 'fibra_optica' | 'wisp_inalambrico'
-    private string $problema;
+    private string $sucursal;
+    private int $tipoId;
+    private int $subtipoId;
     private string $descripcion;
     private ?string $archivo;
     private string $estado; // 'abierto', 'en_proceso', 'cerrado'
     private ?int $soporte_id;
+    private ?int $encargadoId;
     private string $fecha_creacion;
     private ?string $fecha_actualizacion;
 
@@ -33,8 +29,9 @@ class Ticket
         string $apellido = '',
         string $correo = '',
         string $celular = '',
-        string $isp = '',
-        string $problema = '',
+        string $sucursal = '',
+        int $tipoId = 0,
+        int $subtipoId = 0,
         string $descripcion = '',
         ?string $archivo = null,
         string $estado = 'abierto',
@@ -47,17 +44,18 @@ class Ticket
         $this->apellido = $apellido;
         $this->correo = $correo;
         $this->celular = $celular;
-        $this->isp = $isp;
-        $this->problema = $problema;
+        $this->sucursal = $sucursal;
+        $this->tipoId = $tipoId;
+        $this->subtipoId = $subtipoId;
         $this->descripcion = $descripcion;
         $this->archivo = $archivo;
         $this->estado = $estado;
         $this->soporte_id = $soporte_id;
+        $this->encargadoId = null;
         $this->fecha_creacion = $fecha_creacion;
         $this->fecha_actualizacion = $fecha_actualizacion;
     }
 
-    // Getters
     public function getId(): ?int
     {
         return $this->id;
@@ -83,14 +81,19 @@ class Ticket
         return $this->celular;
     }
 
-    public function getIsp(): string
+    public function getSucursal(): string
     {
-        return $this->isp;
+        return $this->sucursal;
     }
 
-    public function getProblema(): string
+    public function getTipoId(): int
     {
-        return $this->problema;
+        return $this->tipoId;
+    }
+
+    public function getSubtipoId(): int
+    {
+        return $this->subtipoId;
     }
 
     public function getDescripcion(): string
@@ -113,6 +116,11 @@ class Ticket
         return $this->soporte_id;
     }
 
+    public function getEncargadoId(): ?int
+    {
+        return $this->encargadoId;
+    }
+
     public function getFechaCreacion(): string
     {
         return $this->fecha_creacion;
@@ -123,7 +131,6 @@ class Ticket
         return $this->fecha_actualizacion;
     }
 
-    // Setters
     public function setId(int $id): void
     {
         $this->id = $id;
@@ -149,14 +156,19 @@ class Ticket
         $this->celular = $celular;
     }
 
-    public function setIsp(string $isp): void
+    public function setSucursal(string $sucursal): void
     {
-        $this->isp = $isp;
+        $this->sucursal = $sucursal;
     }
 
-    public function setProblema(string $problema): void
+    public function setTipoId(int $tipoId): void
     {
-        $this->problema = $problema;
+        $this->tipoId = $tipoId;
+    }
+
+    public function setSubtipoId(int $subtipoId): void
+    {
+        $this->subtipoId = $subtipoId;
     }
 
     public function setDescripcion(string $descripcion): void
@@ -177,6 +189,11 @@ class Ticket
     public function setSoporteId(?int $soporte_id): void
     {
         $this->soporte_id = $soporte_id;
+    }
+
+    public function setEncargadoId(?int $encargadoId): void
+    {
+        $this->encargadoId = $encargadoId;
     }
 
     public function setFechaCreacion(string $fecha_creacion): void
@@ -200,25 +217,16 @@ class Ticket
             'apellido' => $this->apellido,
             'correo' => $this->correo,
             'celular' => $this->celular,
-            'isp' => $this->isp,
-            'problema' => $this->problema,
+            'sucursal' => $this->sucursal,
+            'tipo_id' => $this->tipoId,
+            'subtipo_id' => $this->subtipoId,
             'descripcion' => $this->descripcion,
             'archivo' => $this->archivo,
             'estado' => $this->estado,
             'soporte_id' => $this->soporte_id,
+            'encargado_id' => $this->encargadoId,
             'fecha_creacion' => $this->fecha_creacion,
             'fecha_actualizacion' => $this->fecha_actualizacion
         ];
-    }
-
-    /** @return list<string> */
-    public static function ispsValidos(): array
-    {
-        return array_keys(self::ISP_OPCIONES);
-    }
-
-    public static function etiquetaIsp(string $isp): string
-    {
-        return self::ISP_OPCIONES[$isp] ?? $isp;
     }
 }

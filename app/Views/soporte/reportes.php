@@ -5,7 +5,7 @@ ob_start();
 
 <div class="card">
     <h2>Reportes de Tickets</h2>
-    <p>Visualización gráfica del estado y distribución de los tickets de soporte.</p>
+    <p>Estado y distribución de los tickets de sucursales Tambo.</p>
 
     <form method="GET" action="/proyectoWebTicket/soporte/reportes" class="report-filters">
         <div class="form-group">
@@ -43,7 +43,7 @@ ob_start();
         <div id="pieChartContainer" style="width:100%; height:400px;"></div>
     </div>
 
-    <!-- Gráfico de Barras: Tickets por ISP -->
+    <!-- Gráfico de Barras: Tickets por tipo -->
     <div class="card">
         <div id="barChartContainer" style="width:100%; height:400px;"></div>
     </div>
@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', function () {
         return ['name' => ucfirst(str_replace('_', ' ', $item['estado'])), 'y' => (int)$item['total']];
     }, $ticketsPorEstado)) ?>;
 
-    const ticketsPorISPData = <?= json_encode($ticketsPorISPChartData) ?>;
+    const ticketsPorTipoData = <?= json_encode($ticketsPorTipoChartData) ?>;
 
     const embudoData = <?= json_encode($embudoData) ?>;
 
@@ -109,16 +109,16 @@ document.addEventListener('DOMContentLoaded', function () {
         }]
     });
 
-    // 2. Bar Chart (Tickets por tipo de conexión y Estado - Agrupado)
+    // 2. Bar Chart (Tickets por tipo de atención y estado)
     Highcharts.chart('barChartContainer', {
         chart: {
             type: 'column'
         },
         title: {
-            text: 'Tickets por tipo de conexión y Estado'
+            text: 'Tickets por tipo y estado'
         },
         xAxis: {
-            categories: ticketsPorISPData.categories,
+            categories: ticketsPorTipoData.categories,
             crosshair: true
         },
         yAxis: {
@@ -153,7 +153,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 borderWidth: 0
             }
         },
-        series: ticketsPorISPData.series.map(series => ({
+        series: ticketsPorTipoData.series.map(series => ({
             name: series.name,
             data: series.data,
             color: series.color

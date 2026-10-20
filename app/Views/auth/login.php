@@ -5,8 +5,9 @@ ob_start();
 ?>
 
 <div class="card auth-card">
+    <img class="auth-logo" src="/proyectoWebTicket/public/img/tambo-logo.webp" alt="Tambo" width="1000" height="360">
     <h1 class="card__title">Iniciar Sesión</h1>
-    <p class="card__subtitle">Acceso exclusivo para el equipo de soporte</p>
+    <p class="card__subtitle">Ingreso a la intranet. El registro de tickets no está publicado.</p>
     <form method="POST" action="/proyectoWebTicket/login">
         <div class="form-group">
             <label for="email">Correo electrónico</label>

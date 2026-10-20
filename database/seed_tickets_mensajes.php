@@ -1,11 +1,11 @@
 <?php
 /**
- * Seed de tickets y mensajes — alineado con la estructura real de la BD.
+ * Genera tickets de sucursales Tambo con mensajes de seguimiento.
  *
  * Uso:
  *   php database/seed_tickets_mensajes.php
  *   php database/seed_tickets_mensajes.php --fresh   (vacía tickets y mensajes antes de insertar)
- *   php database/seed_tickets_mensajes.php --count=50
+ *   php database/seed_tickets_mensajes.php --count=80
  */
 
 declare(strict_types=1);
@@ -20,60 +20,29 @@ use App\Core\Database;
 error_reporting(E_ALL);
 ini_set('display_errors', '1');
 
-// ---------------------------------------------------------------------------
-// CLI
-// ---------------------------------------------------------------------------
 $options = getopt('', ['fresh', 'count::']);
 $fresh = isset($options['fresh']);
 $count = isset($options['count']) ? max(1, (int) $options['count']) : 80;
 
-echo "=== Seed tickets + mensajes ===\n";
+echo "=== Seed tickets Tambo ===\n";
 echo "Modo: " . ($fresh ? 'FRESH (truncate)' : 'APPEND') . "\n";
 echo "Cantidad de tickets: {$count}\n\n";
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/** @return list<string> Valores permitidos de un campo ENUM según DESCRIBE */
-function getEnumValues(\PDO $db, string $table, string $column): array
-{
-    $stmt = $db->query("DESCRIBE `$table`");
-    foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
-        if ($row['Field'] !== $column) {
-            continue;
-        }
-        if (!preg_match("/^enum\('(.+)'\)$/i", $row['Type'], $matches)) {
-            throw new RuntimeException("La columna {$table}.{$column} no es ENUM.");
-        }
-        return explode("','", $matches[1]);
-    }
-    throw new RuntimeException("Columna {$table}.{$column} no encontrada.");
-}
-
 function randomDateBetween(string $from, string $to): string
 {
-    $ts = mt_rand(strtotime($from), strtotime($to));
-    return date('Y-m-d H:i:s', $ts);
+    $inicio = strtotime($from);
+    $fin = strtotime($to);
+    if ($fin < $inicio) {
+        $fin = $inicio;
+    }
+    return date('Y-m-d H:i:s', mt_rand($inicio, $fin));
 }
 
-function slugify(string $text): string
-{
-    $ascii = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text);
-    $base = $ascii !== false ? $ascii : $text;
-    return strtolower(preg_replace('/[^a-z0-9]/', '', $base));
-}
-
-function estadoWeights(array $estados): array
-{
-    $map = ['abierto' => 45, 'en_proceso' => 35, 'cerrado' => 20];
-    return array_map(static fn(string $e): int => $map[$e] ?? 10, $estados);
-}
-
+/** @param list<int> $weights */
 function pickWeighted(array $items, array $weights): mixed
 {
     $total = array_sum($weights);
-    $rand = mt_rand(1, $total);
+    $rand = mt_rand(1, max(1, $total));
     $cumulative = 0;
     foreach ($items as $i => $item) {
         $cumulative += $weights[$i];
@@ -84,30 +53,183 @@ function pickWeighted(array $items, array $weights): mixed
     return $items[array_key_last($items)];
 }
 
-// ---------------------------------------------------------------------------
-// Main
-// ---------------------------------------------------------------------------
 try {
     $db = Database::getConnection();
     $db->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 
-    // Leer estructura real desde la BD (puede diferir de schema.sql versionado)
-    $ispValues = getEnumValues($db, 'tickets', 'isp');
-    $estadoValues = getEnumValues($db, 'tickets', 'estado');
+    $sucursales = $db->query("
+        SELECT id, codigo, nombre
+        FROM sucursales
+        ORDER BY orden, id
+    ")->fetchAll(\PDO::FETCH_ASSOC);
 
-    echo "ENUM isp detectado:     " . implode(', ', $ispValues) . "\n";
-    echo "ENUM estado detectado:  " . implode(', ', $estadoValues) . "\n\n";
+    $subtipos = $db->query("
+        SELECT s.id, s.codigo, s.nombre, s.tipo_id, t.codigo AS tipo_codigo, t.nombre AS tipo_nombre
+        FROM subtipos_ticket s
+        INNER JOIN tipos_ticket t ON t.id = s.tipo_id
+        ORDER BY t.orden, s.orden
+    ")->fetchAll(\PDO::FETCH_ASSOC);
 
-    $soporteStmt = $db->query("SELECT id, nombre FROM usuarios WHERE tipo = 'soporte' ORDER BY id ASC");
-    $agentes = $soporteStmt->fetchAll(\PDO::FETCH_ASSOC);
+    $agentes = $db->query("
+        SELECT id, nombre, apellido
+        FROM usuarios
+        WHERE tipo = 'soporte'
+        ORDER BY id
+    ")->fetchAll(\PDO::FETCH_ASSOC);
 
-    if (empty($agentes)) {
+    $encargados = $db->query("
+        SELECT id, area_id, nombre, apellido
+        FROM usuarios
+        WHERE tipo = 'responsable_area' AND area_id IS NOT NULL
+    ")->fetchAll(\PDO::FETCH_ASSOC);
+
+    $tiendas = $db->query("
+        SELECT u.nombre, u.apellido, u.email, u.celular, u.sucursal_id
+        FROM usuarios u
+        WHERE u.tipo = 'responsable_tienda'
+        ORDER BY u.id
+    ")->fetchAll(\PDO::FETCH_ASSOC);
+
+    if ($sucursales === [] || $subtipos === [] || $agentes === [] || $encargados === []) {
         throw new RuntimeException(
-            'No hay usuarios de soporte. Ejecute database/schema.sql o cree al menos un agente.'
+            'Faltan sucursales, catálogo, soporte o encargados de área. Ejecute las migraciones antes del seed.'
         );
     }
 
-    echo 'Agentes de soporte: ' . count($agentes) . "\n";
+    $encargadoPorArea = [];
+    foreach ($encargados as $encargado) {
+        $encargadoPorArea[(int) $encargado['area_id']] = $encargado;
+    }
+
+    $tiendaPorSucursal = [];
+    foreach ($tiendas as $tienda) {
+        $tiendaPorSucursal[(int) $tienda['sucursal_id']] = $tienda;
+    }
+
+    $responsablesExtra = [
+        'TB-SBO' => ['nombre' => 'Diego', 'apellido' => 'Salazar', 'email' => 'diego.salazar@tambo.pe', 'celular' => '987120334'],
+        'TB-OLI' => ['nombre' => 'Carmen', 'apellido' => 'Villegas', 'email' => 'carmen.villegas@tambo.pe', 'celular' => '987441902'],
+        'TB-MIR' => ['nombre' => 'María', 'apellido' => 'Quispe', 'email' => 'tienda@demo.com', 'celular' => '999111222'],
+    ];
+
+    $porTipo = [];
+    foreach ($subtipos as $subtipo) {
+        $porTipo[(int) $subtipo['tipo_id']][] = $subtipo;
+    }
+    $tipoIds = array_keys($porTipo);
+
+    $detalles = [
+        'falta_stock_lider' => [
+            'No queda stock de productos líder en góndola. El último pedido no cubrió la venta del fin de semana.',
+            'La tienda se quedó sin los SKU líder de bebidas y snacks. Se necesita reposición antes del turno noche.',
+        ],
+        'lote_vencido' => [
+            'Se detectó un lote vencido en el lineal de abarrotes. Hay que retirarlo y reponer la mercadería.',
+            'El control de vencimientos encontró productos fuera de fecha en la cámara. Se apartó el lote.',
+        ],
+        'falta_uso_diario' => [
+            'Faltan bolsas, vasos y tapers para la operación del día. El consumo superó el stock de tienda.',
+            'No hay suficientes elementos de uso diario para el despacho de mostrador.',
+        ],
+        'insumos_sanitarios' => [
+            'Se agotaron jabón, papel y alcohol del baño de personal y de la zona de atención.',
+            'Hay que reabastecer los insumos sanitarios antes de la apertura de mañana.',
+        ],
+        'pedido_no_recepcionado' => [
+            'El pedido del centro de distribución no llegó en la ventana de recepción. La guía figura en tránsito.',
+            'La tienda no recepcionó el pedido programado. Faltan cajas del despacho de hoy.',
+        ],
+        'diferencia_inventario' => [
+            'El conteo de tienda no coincide con el sistema en varias categorías. Hay faltantes sin justificar.',
+            'Se encontró diferencia de inventario al cerrar el día. Se pide revisión del movimiento.',
+        ],
+        'falla_pos' => [
+            'El punto de venta se congela al cobrar. La caja no puede emitir el comprobante.',
+            'El POS reinicia solo durante el pago con tarjeta y deja la venta a medias.',
+        ],
+        'impresora_tickets' => [
+            'La impresora de tickets no corta el papel y sale el comprobante en blanco.',
+            'No imprime vouchers desde media mañana. Se está anotando la venta de forma manual.',
+        ],
+        'sin_conexion' => [
+            'La tienda se quedó sin internet y no puede consultar precios ni sincronizar ventas.',
+            'La red cae por intervalos. El datáfono y el inventario pierden conexión.',
+        ],
+        'sistema_inventario' => [
+            'El sistema de inventario no carga el stock de tienda. No se pueden confirmar recepciones.',
+            'La consulta de kardex devuelve error y retrasa el cuadre de mercadería.',
+        ],
+        'lector_barras' => [
+            'El lector de código de barras no reconoce varios SKU. La cajera ingresa los códigos a mano.',
+            'El lector pita pero no registra el producto en el POS.',
+        ],
+        'equipo_frio' => [
+            'La refrigeradora de bebidas no mantiene temperatura. Los productos están fuera de rango.',
+            'El equipo de frío hace ruido y la temperatura subió por encima de lo permitido.',
+        ],
+        'error_cierre_caja' => [
+            'El cierre de caja no cuadra con los comprobantes del turno. Falta registrar un pago.',
+            'Al cerrar caja el sistema muestra un error y no deja confirmar el turno.',
+        ],
+        'diferencia_arqueo' => [
+            'El arqueo del turno tarde tiene diferencia en efectivo. Se apartó el sobre para revisión.',
+            'Hay un faltante en el arqueo respecto de las ventas en efectivo del día.',
+        ],
+        'cambio_turno' => [
+            'Se solicita cambio de turno por cobertura de la tienda el fin de semana.',
+            'El responsable pide ajustar el turno de apertura porque no hay personal de reemplazo.',
+        ],
+        'incidencia_personal' => [
+            'Un colaborador no se presentó y la tienda opera con dotación incompleta.',
+            'Se reporta una incidencia de personal durante el turno noche. Se necesita indicación del área.',
+        ],
+        'documentacion_incompleta' => [
+            'La guía del pedido llegó sin el detalle de bultos. No se puede cerrar la recepción.',
+            'Falta la factura de una entrega ya ingresada a tienda. La documentación está incompleta.',
+        ],
+        'reclamo_cliente' => [
+            'Un cliente reclama un cobro duplicado en el POS. Se guardó el voucher para la revisión.',
+            'Quedó pendiente el reclamo de un producto en mal estado entregado en mostrador.',
+        ],
+        'incidente_seguridad' => [
+            'Se reporta un intento de hurto en la zona de bebidas. Se resguardó la cámara del pasillo.',
+            'Hubo un incidente de seguridad al cierre. Se pide revisión de la cerradura y las cámaras.',
+        ],
+        'dano_infraestructura' => [
+            'Hay una filtración en el techo del almacén. El agua cae cerca de la mercadería seca.',
+            'Se dañó una puerta del local y no cierra bien al terminar el turno.',
+        ],
+        'servicios_basicos' => [
+            'Se cortó la luz de la tienda por más de una hora. Los equipos de frío quedaron sin energía.',
+            'No hay agua en los servicios de la tienda desde el inicio del turno.',
+        ],
+        'mantenimiento_local' => [
+            'El local necesita limpieza profunda del almacén y revisión de la iluminación del pasillo.',
+            'Hay que programar mantenimiento del piso de venta: está levantado junto a la caja.',
+        ],
+        'consulta_no_clasificada' => [
+            'La tienda consulta un caso que no encaja en los motivos habituales y pide orientación.',
+            'Se registra una consulta operativa pendiente de clasificación por el área correspondiente.',
+        ],
+        'sugerencia_mejora' => [
+            'La tienda sugiere cambiar el orden de reposición de la góndola de productos líder.',
+            'Se propone ajustar el horario de recepción para no cruzarlo con la hora punta de venta.',
+        ],
+    ];
+
+    $respuestasSoporte = [
+        'Recibimos el ticket de la tienda y lo estamos revisando con el área correspondiente.',
+        'Quedó registrado el caso. Vamos a confirmar el pedido y el impacto en la operación de hoy.',
+        'Coordinamos la atención con el encargado del área. Les avisamos apenas haya una fecha.',
+        'Revisamos la evidencia de la tienda. El caso sigue en seguimiento.',
+    ];
+
+    $respuestasEncargado = [
+        'Tomo el ticket de mi área. Estoy revisando el stock y la última recepción de la tienda.',
+        'Ya derivé la reposición al equipo responsable. Confirmen cuando llegue a tienda.',
+        'El caso quedó resuelto. Pueden cerrar la incidencia si la operación volvió a la normalidad.',
+        'Necesito el detalle del turno y una foto del lineal o del equipo para continuar.',
+    ];
 
     if ($fresh) {
         echo "Truncando mensajes y tickets...\n";
@@ -117,45 +239,15 @@ try {
         $db->exec('SET FOREIGN_KEY_CHECKS = 1');
     }
 
-    $nombres = ['Juan', 'María', 'Carlos', 'Ana', 'Luis', 'Sofía', 'Pedro', 'Lucía', 'Miguel', 'Elena', 'Jorge', 'Laura', 'Ricardo', 'Carmen', 'David', 'Patricia', 'Fernando', 'Gabriela', 'Roberto', 'Valeria'];
-    $apellidos = ['Pérez', 'García', 'López', 'Rodríguez', 'Martínez', 'Sánchez', 'Fernández', 'Gómez', 'Díaz', 'Torres', 'Ramírez', 'Vargas', 'Rojas', 'Mendoza', 'Castillo', 'Silva', 'Quispe', 'Huamán', 'Flores', 'Chávez'];
-
-    $problemas = [
-        'Internet lento en horas pico',
-        'Sin conexión desde ayer',
-        'Intermitencia constante del servicio',
-        'Router reiniciándose solo',
-        'Velocidad inferior al plan contratado',
-        'No puedo acceder a portales del ISP',
-        'Corte de fibra en el sector',
-        'Solicitud de cambio de plan',
-        'Duda sobre facturación del mes',
-        'Instalación pendiente de verificación',
-        'WiFi con alcance muy limitado',
-        'Latencia alta en videollamadas',
-    ];
-
-    $plantillasDescripcion = [
-        'El cliente reporta %s con el proveedor. El inconveniente comenzó hace %d días y afecta el trabajo remoto y servicios del hogar.',
-        'Se presenta %s de forma recurrente. Ya se reinició el equipo ONT/router sin mejoría. Requiere revisión técnica a domicilio.',
-        'Usuario indica %s. Adjuntó evidencia del problema. Solicita seguimiento prioritario por impacto en su operación diaria.',
-    ];
-
-    $respuestasSoporte = [
-        'Hemos recibido su reporte y lo estamos revisando. En breve un técnico validará la señal en su zona.',
-        'Realizamos pruebas remotas en su enlace. Detectamos variaciones en la potencia óptica; estamos coordinando visita.',
-        'Se escaló el caso al área de red. Le mantendremos informado sobre el avance en las próximas horas.',
-        'El ticket fue cerrado tras confirmar la restablecida del servicio. Quedamos atentos si el problema se repite.',
-        'Por favor confirme si el servicio se normalizó después del último reinicio programado del equipo.',
-    ];
-
     $insertTicket = $db->prepare("
         INSERT INTO tickets (
-            nombre, apellido, correo, celular, isp, problema, descripcion,
-            archivo, estado, soporte_id, fecha_creacion, fecha_actualizacion
+            nombre, apellido, correo, celular, sucursal,
+            tipo_id, subtipo_id, descripcion, archivo, estado,
+            soporte_id, encargado_id, fecha_creacion, fecha_actualizacion
         ) VALUES (
-            :nombre, :apellido, :correo, :celular, :isp, :problema, :descripcion,
-            :archivo, :estado, :soporte_id, :fecha_creacion, :fecha_actualizacion
+            :nombre, :apellido, :correo, :celular, :sucursal,
+            :tipo_id, :subtipo_id, :descripcion, NULL, :estado,
+            :soporte_id, :encargado_id, :fecha_creacion, :fecha_actualizacion
         )
     ");
 
@@ -168,87 +260,85 @@ try {
 
     $insertados = 0;
     $mensajesInsertados = 0;
-    $ticketIds = [];
-
-    // Distribución realista: más abiertos, menos cerrados
-    $estadoPool = [];
-    foreach ($estadoValues as $estado) {
-        $estadoPool[] = $estado;
-    }
+    $estados = ['abierto', 'en_proceso', 'cerrado'];
+    $pesosEstado = [40, 40, 20];
 
     for ($i = 0; $i < $count; $i++) {
-        $nombre = $nombres[array_rand($nombres)];
-        $apellido = $apellidos[array_rand($apellidos)];
-        $isp = $ispValues[array_rand($ispValues)];
-        $problema = $problemas[array_rand($problemas)];
-        $estado = pickWeighted($estadoPool, estadoWeights($estadoPool));
+        $tipoId = $tipoIds[$i % count($tipoIds)];
+        $subtipo = $porTipo[$tipoId][array_rand($porTipo[$tipoId])];
+        $sucursal = $sucursales[array_rand($sucursales)];
+        $estado = pickWeighted($estados, $pesosEstado);
 
-        $dias = mt_rand(1, 60);
-        $fechaCreacion = randomDateBetween("-{$dias} days", '-1 hour');
-        $fechaActualizacion = null;
+        $solicitante = $tiendaPorSucursal[(int) $sucursal['id']]
+            ?? $responsablesExtra[$sucursal['codigo']]
+            ?? $responsablesExtra['TB-MIR'];
+
+        $dias = mt_rand(1, 40);
+        $fechaCreacion = randomDateBetween("-{$dias} days", '-2 hours');
         $soporteId = null;
+        $encargadoId = null;
+        $fechaActualizacion = null;
         $agente = $agentes[array_rand($agentes)];
+        $encargado = $encargadoPorArea[(int) $subtipo['tipo_id']] ?? null;
 
         if ($estado !== 'abierto') {
             $soporteId = (int) $agente['id'];
             $fechaActualizacion = randomDateBetween($fechaCreacion, 'now');
+            if ($encargado !== null) {
+                $encargadoId = (int) $encargado['id'];
+            }
         }
 
-        $plantilla = $plantillasDescripcion[array_rand($plantillasDescripcion)];
-        $descripcion = sprintf($plantilla, strtolower($problema), mt_rand(1, 14));
+        $variantes = $detalles[$subtipo['codigo']] ?? [
+            'La tienda reporta: ' . $subtipo['nombre'] . '.',
+        ];
 
         $insertTicket->execute([
-            'nombre' => $nombre,
-            'apellido' => $apellido,
-            'correo' => slugify($nombre) . '.' . slugify($apellido) . mt_rand(1, 999) . '@example.com',
-            'celular' => '9' . str_pad((string) mt_rand(0, 99999999), 8, '0', STR_PAD_LEFT),
-            'isp' => $isp,
-            'problema' => $problema,
-            'descripcion' => $descripcion,
-            'archivo' => null,
+            'nombre' => $solicitante['nombre'],
+            'apellido' => $solicitante['apellido'],
+            'correo' => $solicitante['email'],
+            'celular' => $solicitante['celular'],
+            'sucursal' => $sucursal['codigo'] . ' · ' . $sucursal['nombre'],
+            'tipo_id' => (int) $subtipo['tipo_id'],
+            'subtipo_id' => (int) $subtipo['id'],
+            'descripcion' => $variantes[array_rand($variantes)],
             'estado' => $estado,
             'soporte_id' => $soporteId,
+            'encargado_id' => $encargadoId,
             'fecha_creacion' => $fechaCreacion,
             'fecha_actualizacion' => $fechaActualizacion,
         ]);
 
         $ticketId = (int) $db->lastInsertId();
-        $ticketIds[] = $ticketId;
         $insertados++;
 
-        // Nota de seguimiento interno (~40% de tickets)
-        if (mt_rand(1, 100) <= 40) {
-            $insertMensaje->execute([
-                'ticket_id' => $ticketId,
-                'usuario_id' => (int) $agente['id'],
-                'mensaje' => 'Ticket registrado en cola de atención. Prioridad asignada según tipo de incidencia reportada.',
-                'fecha_creacion' => date('Y-m-d H:i:s', strtotime($fechaCreacion . ' +15 minutes')),
-            ]);
-            $mensajesInsertados++;
+        if ($estado === 'abierto') {
+            continue;
         }
 
-        // Hilos de soporte según estado
-        if ($estado === 'en_proceso' || $estado === 'cerrado') {
-            $numRespuestas = $estado === 'cerrado' ? mt_rand(2, 4) : mt_rand(1, 3);
-            $baseTs = strtotime($fechaCreacion);
+        $base = strtotime($fechaCreacion);
+        $ahora = time();
+        $numRespuestas = $estado === 'cerrado' ? mt_rand(2, 3) : mt_rand(1, 2);
 
-            for ($m = 0; $m < $numRespuestas; $m++) {
-                $insertMensaje->execute([
-                    'ticket_id' => $ticketId,
-                    'usuario_id' => (int) $agente['id'],
-                    'mensaje' => $respuestasSoporte[array_rand($respuestasSoporte)],
-                    'fecha_creacion' => date('Y-m-d H:i:s', $baseTs + (($m + 1) * mt_rand(3600, 86400))),
-                ]);
-                $mensajesInsertados++;
-            }
+        for ($m = 0; $m < $numRespuestas; $m++) {
+            $cuando = min($ahora, $base + (($m + 1) * mt_rand(1800, 43200)));
+            $esEncargado = $encargadoId !== null && $m === $numRespuestas - 1;
+            $insertMensaje->execute([
+                'ticket_id' => $ticketId,
+                'usuario_id' => $esEncargado ? $encargadoId : $soporteId,
+                'mensaje' => $esEncargado
+                    ? $respuestasEncargado[array_rand($respuestasEncargado)]
+                    : $respuestasSoporte[array_rand($respuestasSoporte)],
+                'fecha_creacion' => date('Y-m-d H:i:s', $cuando),
+            ]);
+            $mensajesInsertados++;
         }
     }
 
     $db->commit();
 
-    echo "\n--- Resultado ---\n";
-    echo "Tickets insertados:  {$insertados}\n";
-    echo "Mensajes insertados: {$mensajesInsertados}\n";
+    echo "Tickets insertados en esta ejecución: {$insertados}\n";
+    echo "Mensajes insertados en esta ejecución: {$mensajesInsertados}\n";
 
     $resumen = $db->query("
         SELECT estado, COUNT(*) AS total
@@ -257,22 +347,26 @@ try {
         ORDER BY FIELD(estado, 'abierto', 'en_proceso', 'cerrado')
     ")->fetchAll(\PDO::FETCH_ASSOC);
 
-    echo "\nDistribución por estado:\n";
+    echo "\nTickets en la base, por estado:\n";
     foreach ($resumen as $row) {
         echo "  - {$row['estado']}: {$row['total']}\n";
     }
 
-    $ispResumen = $db->query("
-        SELECT isp, COUNT(*) AS total FROM tickets GROUP BY isp
+    $porArea = $db->query("
+        SELECT t.nombre AS area, COUNT(tk.id) AS total,
+               SUM(tk.encargado_id IS NOT NULL) AS derivados
+        FROM tipos_ticket t
+        LEFT JOIN tickets tk ON tk.tipo_id = t.id
+        GROUP BY t.id, t.nombre
+        ORDER BY t.orden
     ")->fetchAll(\PDO::FETCH_ASSOC);
 
-    echo "\nDistribución por ISP:\n";
-    foreach ($ispResumen as $row) {
-        echo "  - {$row['isp']}: {$row['total']}\n";
+    echo "\nPor área:\n";
+    foreach ($porArea as $row) {
+        echo "  - {$row['area']}: {$row['total']} (derivados: {$row['derivados']})\n";
     }
 
-    echo "\nSeed completado correctamente.\n";
-
+    echo "\nSeed completado.\n";
 } catch (\PDOException $e) {
     if (isset($db) && $db->inTransaction()) {
         $db->rollBack();

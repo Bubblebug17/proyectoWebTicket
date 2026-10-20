@@ -2,7 +2,6 @@
 
 namespace App\Controllers;
 
-use App\Entities\Ticket;
 use App\Core\Request;
 use App\Models\TicketModel;
 
@@ -22,34 +21,33 @@ class ReportesController extends BaseController
         $fechaHasta = trim((string) $request->get('fecha_hasta', ''));
 
         $ticketsPorEstado = $this->ticketModel->getTicketsByStatusCount();
-        $rawISPData = $this->ticketModel->getTicketsByISPAndStatusCount();
+        $rawTipoData = $this->ticketModel->getTicketsByTipoAndStatusCount();
 
-        $isps = [];
-        foreach ($rawISPData as $row) {
-            if (!in_array($row['isp'], $isps)) {
-                $isps[] = $row['isp'];
+        $tipos = [];
+        foreach ($rawTipoData as $row) {
+            if (!in_array($row['tipo'], $tipos, true)) {
+                $tipos[] = $row['tipo'];
             }
         }
-        sort($isps);
 
         $seriesData = [
-            'abierto' => array_fill(0, count($isps), 0),
-            'en_proceso' => array_fill(0, count($isps), 0),
-            'cerrado' => array_fill(0, count($isps), 0)
+            'abierto' => array_fill(0, count($tipos), 0),
+            'en_proceso' => array_fill(0, count($tipos), 0),
+            'cerrado' => array_fill(0, count($tipos), 0)
         ];
 
-        $ispMap = array_flip($isps);
+        $tipoMap = array_flip($tipos);
 
-        foreach ($rawISPData as $row) {
-            $ispIndex = $ispMap[$row['isp']];
+        foreach ($rawTipoData as $row) {
+            $tipoIndex = $tipoMap[$row['tipo']];
             $estado = $row['estado'];
             if (isset($seriesData[$estado])) {
-                $seriesData[$estado][$ispIndex] = (int) $row['total'];
+                $seriesData[$estado][$tipoIndex] = (int) $row['total'];
             }
         }
 
-        $ticketsPorISPChartData = [
-            'categories' => array_values($isps),
+        $ticketsPorTipoChartData = [
+            'categories' => array_values($tipos),
             'series' => [
                 ['name' => 'Abierto', 'data' => $seriesData['abierto'], 'color' => '#3498db'],
                 ['name' => 'En Proceso', 'data' => $seriesData['en_proceso'], 'color' => '#f39c12'],
@@ -80,7 +78,7 @@ class ReportesController extends BaseController
             'fechaDesde' => $fechaDesde,
             'fechaHasta' => $fechaHasta,
             'ticketsPorEstado' => $ticketsPorEstado,
-            'ticketsPorISPChartData' => $ticketsPorISPChartData,
+            'ticketsPorTipoChartData' => $ticketsPorTipoChartData,
             'embudoData' => $embudoData
         ]);
     }
@@ -111,8 +109,9 @@ class ReportesController extends BaseController
         echo '<th>Apellido</th>';
         echo '<th>Correo</th>';
         echo '<th>Celular</th>';
-        echo '<th>ISP</th>';
-        echo '<th>Problema</th>';
+        echo '<th>Sucursal</th>';
+        echo '<th>Tipo</th>';
+        echo '<th>Motivo</th>';
         echo '<th>Descripción</th>';
         echo '<th>Estado</th>';
         echo '<th>Agente Asignado</th>';
@@ -121,7 +120,7 @@ class ReportesController extends BaseController
         echo '</tr></thead><tbody>';
 
         if (empty($tickets)) {
-            echo '<tr><td colspan="12">No hay tickets en el rango seleccionado.</td></tr>';
+            echo '<tr><td colspan="13">No hay tickets en el rango seleccionado.</td></tr>';
         } else {
             foreach ($tickets as $ticket) {
                 echo '<tr>';
@@ -130,8 +129,9 @@ class ReportesController extends BaseController
                 echo '<td>' . htmlspecialchars($ticket['apellido']) . '</td>';
                 echo '<td>' . htmlspecialchars($ticket['correo']) . '</td>';
                 echo '<td>' . htmlspecialchars($ticket['celular']) . '</td>';
-                echo '<td>' . htmlspecialchars(Ticket::etiquetaIsp($ticket['isp'])) . '</td>';
-                echo '<td>' . htmlspecialchars($ticket['problema']) . '</td>';
+                echo '<td>' . htmlspecialchars($ticket['sucursal']) . '</td>';
+                echo '<td>' . htmlspecialchars($ticket['tipo_nombre']) . '</td>';
+                echo '<td>' . htmlspecialchars($ticket['subtipo_nombre']) . '</td>';
                 echo '<td>' . htmlspecialchars($ticket['descripcion']) . '</td>';
                 echo '<td>' . htmlspecialchars(ucfirst(str_replace('_', ' ', $ticket['estado']))) . '</td>';
                 echo '<td>' . htmlspecialchars($ticket['soporte_nombre'] ?? 'Sin asignar') . '</td>';

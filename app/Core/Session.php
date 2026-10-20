@@ -39,26 +39,10 @@ class Session
     }
 
     /**
-     * Elimina un valor de la sesión
-     */
-    public function remove(string $key): void
-    {
-        unset($_SESSION[$key]);
-    }
-
-    /**
      * Destruye la sesión
      */
     public function destroy(): void
     {
         session_destroy();
-    }
-
-    /**
-     * Obtiene todos los datos de la sesión
-     */
-    public function all(): array
-    {
-        return $_SESSION;
     }
 }

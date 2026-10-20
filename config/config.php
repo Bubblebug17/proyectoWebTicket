@@ -9,7 +9,7 @@ return [
         'charset' => 'utf8mb4'
     ],
     'app' => [
-        'name' => 'Sistema de Tickets',
+        'name' => 'Intranet Tambo',
         'url' => 'http://localhost/proyectoWebTicket',
         'timezone' => 'America/Lima'
     ],

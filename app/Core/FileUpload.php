@@ -54,32 +54,4 @@ class FileUpload
 
         return null;
     }
-
-    /**
-     * Obtiene la URL pública del archivo
-     */
-    public function getPublicUrl(string $fileName): string
-    {
-        return '/proyectoWebTicket/public/uploads/' . $fileName;
-    }
-
-    /**
-     * Verifica si un archivo es una imagen
-     */
-    public function isImage(string $fileName): bool
-    {
-        $extension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
-        $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-        return in_array($extension, $imageExtensions);
-    }
-
-    /**
-     * Verifica si un archivo es un video
-     */
-    public function isVideo(string $fileName): bool
-    {
-        $extension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
-        $videoExtensions = ['mp4', 'mpeg', 'mov', 'avi'];
-        return in_array($extension, $videoExtensions);
-    }
 }

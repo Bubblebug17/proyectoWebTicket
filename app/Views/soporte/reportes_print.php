@@ -92,7 +92,7 @@
     </div>
 
     <div class="report-header">
-        <h1>Reporte Gerencial de Tickets</h1>
+        <h1>Reporte de tickets — Sucursales Tambo</h1>
         <p class="report-meta">
             Generado: <?= date('d/m/Y H:i') ?>
             <?php if (!empty($fechaDesde) || !empty($fechaHasta)): ?>
@@ -138,11 +138,11 @@
         <thead>
             <tr>
                 <th>ID</th>
-                <th>Cliente</th>
+                <th>Solicitante</th>
+                <th>Sucursal</th>
                 <th>Correo</th>
-                <th>Celular</th>
-                <th>ISP</th>
-                <th>Problema</th>
+                <th>Tipo</th>
+                <th>Motivo</th>
                 <th>Estado</th>
                 <th>Agente</th>
                 <th>Fecha</th>
@@ -158,10 +158,10 @@
                     <tr>
                         <td><?= (int) $ticket['id'] ?></td>
                         <td><?= htmlspecialchars($ticket['nombre'] . ' ' . $ticket['apellido']) ?></td>
+                        <td><?= htmlspecialchars($ticket['sucursal']) ?></td>
                         <td><?= htmlspecialchars($ticket['correo']) ?></td>
-                        <td><?= htmlspecialchars($ticket['celular']) ?></td>
-                        <td><?= htmlspecialchars(\App\Entities\Ticket::etiquetaIsp($ticket['isp'])) ?></td>
-                        <td><?= htmlspecialchars($ticket['problema']) ?></td>
+                        <td><?= htmlspecialchars($ticket['tipo_nombre']) ?></td>
+                        <td><?= htmlspecialchars($ticket['subtipo_nombre']) ?></td>
                         <td class="estado-<?= htmlspecialchars($ticket['estado']) ?>">
                             <?= htmlspecialchars(ucfirst(str_replace('_', ' ', $ticket['estado']))) ?>
                         </td>

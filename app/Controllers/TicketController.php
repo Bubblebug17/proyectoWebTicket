@@ -3,7 +3,9 @@
 namespace App\Controllers;
 
 use App\Entities\Ticket;
+use App\Models\CatalogoTicketModel;
 use App\Models\TicketModel;
+use App\Models\UsuarioModel;
 use App\Core\FileUpload;
 
 /**
@@ -12,12 +14,16 @@ use App\Core\FileUpload;
 class TicketController extends BaseController
 {
     private TicketModel $ticketModel;
+    private CatalogoTicketModel $catalogoModel;
+    private UsuarioModel $usuarioModel;
     private FileUpload $fileUpload;
 
     public function __construct()
     {
         parent::__construct();
         $this->ticketModel = new TicketModel();
+        $this->catalogoModel = new CatalogoTicketModel();
+        $this->usuarioModel = new UsuarioModel();
         $this->fileUpload = new FileUpload();
     }
 
@@ -26,9 +32,7 @@ class TicketController extends BaseController
      */
     public function create(): void
     {
-        $this->view('ticket/create', [
-            'ispOpciones' => Ticket::ISP_OPCIONES,
-        ]);
+        $this->renderForm();
     }
 
     /**
@@ -36,42 +40,24 @@ class TicketController extends BaseController
      */
     public function store(): void
     {
-        // Validar campos requeridos
-        $nombre = trim($this->request->post('nombre', ''));
-        $apellido = trim($this->request->post('apellido', ''));
-        $correo = trim($this->request->post('correo', ''));
-        $celular = trim($this->request->post('celular', ''));
-        $isp = $this->request->post('isp', '');
-        $problema = trim($this->request->post('problema', ''));
+        $solicitante = $this->solicitanteActual();
+        if ($solicitante === null) {
+            $this->redirect('/proyectoWebTicket/login');
+            return;
+        }
+
+        $tipoId = (int) $this->request->post('tipo_id', 0);
+        $subtipoId = (int) $this->request->post('subtipo_id', 0);
         $descripcion = trim($this->request->post('descripcion', ''));
 
         $errors = [];
 
-        // Validaciones
-        if (empty($nombre)) {
-            $errors[] = 'El nombre es requerido';
+        if ($solicitante['sucursal_etiqueta'] === '') {
+            $errors[] = 'Su usuario no tiene sucursal asignada';
         }
 
-        if (empty($apellido)) {
-            $errors[] = 'El apellido es requerido';
-        }
-
-        if (empty($correo)) {
-            $errors[] = 'El correo es requerido';
-        } elseif (!filter_var($correo, FILTER_VALIDATE_EMAIL)) {
-            $errors[] = 'El formato del correo no es válido';
-        }
-
-        if (empty($celular)) {
-            $errors[] = 'El celular es requerido';
-        }
-
-        if (empty($isp) || !in_array($isp, Ticket::ispsValidos(), true)) {
-            $errors[] = 'Debe seleccionar un ISP válido';
-        }
-
-        if (empty($problema)) {
-            $errors[] = 'El problema es requerido';
+        if ($tipoId < 1 || $subtipoId < 1 || !$this->catalogoModel->subtipoPerteneceATipo($subtipoId, $tipoId)) {
+            $errors[] = 'Debe seleccionar un tipo y un motivo válidos';
         }
 
         if (empty($descripcion)) {
@@ -89,52 +75,85 @@ class TicketController extends BaseController
 
         // Si hay errores, mostrar formulario con errores
         if (!empty($errors)) {
-            $this->view('ticket/create', [
+            $this->renderForm([
                 'errors' => $errors,
-                'ispOpciones' => Ticket::ISP_OPCIONES,
-                'old' => [
-                    'nombre' => $nombre,
-                    'apellido' => $apellido,
-                    'correo' => $correo,
-                    'celular' => $celular,
-                    'isp' => $isp,
-                    'problema' => $problema,
-                    'descripcion' => $descripcion
-                ]
+                'solicitante' => $solicitante,
+                'old' => $this->oldInput($tipoId, $subtipoId, $descripcion),
             ]);
             return;
         }
 
-        // Crear ticket
         $ticket = new Ticket();
-        $ticket->setNombre($nombre);
-        $ticket->setApellido($apellido);
-        $ticket->setCorreo($correo);
-        $ticket->setCelular($celular);
-        $ticket->setIsp($isp);
-        $ticket->setProblema($problema);
+        $ticket->setNombre($solicitante['nombre']);
+        $ticket->setApellido($solicitante['apellido']);
+        $ticket->setCorreo($solicitante['email']);
+        $ticket->setCelular($solicitante['celular']);
+        $ticket->setSucursal($solicitante['sucursal_etiqueta']);
+        $ticket->setTipoId($tipoId);
+        $ticket->setSubtipoId($subtipoId);
         $ticket->setDescripcion($descripcion);
         $ticket->setArchivo($archivo);
         $ticket->setEstado('abierto');
 
         if ($this->ticketModel->create($ticket)) {
             $this->view('ticket/success', [
-                'mensaje' => 'Su ticket ha sido registrado exitosamente. Nos pondremos en contacto con usted pronto.'
+                'mensaje' => 'Su ticket de sucursal ha sido registrado. El equipo de atención se pondrá en contacto con usted pronto.'
             ]);
         } else {
-            $this->view('ticket/create', [
+            $this->renderForm([
                 'errors' => ['Error al registrar el ticket. Por favor, intente nuevamente.'],
-                'ispOpciones' => Ticket::ISP_OPCIONES,
-                'old' => [
-                    'nombre' => $nombre,
-                    'apellido' => $apellido,
-                    'correo' => $correo,
-                    'celular' => $celular,
-                    'isp' => $isp,
-                    'problema' => $problema,
-                    'descripcion' => $descripcion
-                ]
+                'solicitante' => $solicitante,
+                'old' => $this->oldInput($tipoId, $subtipoId, $descripcion),
             ]);
         }
+    }
+
+    private function renderForm(array $extra = []): void
+    {
+        $solicitante = $extra['solicitante'] ?? $this->solicitanteActual();
+        if ($solicitante === null) {
+            $this->redirect('/proyectoWebTicket/login');
+            return;
+        }
+
+        unset($extra['solicitante']);
+        $this->session->set('user', $solicitante);
+
+        $this->view('ticket/create', array_merge([
+            'catalogo' => $this->catalogoModel->listarAgrupado(),
+            'solicitante' => $solicitante,
+            'user' => $solicitante,
+        ], $extra));
+    }
+
+    /**
+     * @return array<string, int|string>|null
+     */
+    private function solicitanteActual(): ?array
+    {
+        $sessionUser = $this->getCurrentUser();
+        $id = (int) ($sessionUser['id'] ?? 0);
+        if ($id < 1) {
+            return null;
+        }
+
+        $usuario = $this->usuarioModel->findById($id);
+        if ($usuario === null) {
+            return null;
+        }
+
+        return $usuario->toArray();
+    }
+
+    /**
+     * @return array<string, int|string>
+     */
+    private function oldInput(int $tipoId, int $subtipoId, string $descripcion): array
+    {
+        return [
+            'tipo_id' => $tipoId,
+            'subtipo_id' => $subtipoId,
+            'descripcion' => $descripcion,
+        ];
     }
 }

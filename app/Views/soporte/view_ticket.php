@@ -5,18 +5,21 @@ ob_start();
 
 <div class="card">
     <h1 class="card__title">Ticket #<?= str_pad((string) $ticket['id'], 3, '0', STR_PAD_LEFT) ?></h1>
-    <p class="card__subtitle"><?= htmlspecialchars($ticket['problema']) ?></p>
+    <p class="card__subtitle"><?= htmlspecialchars($ticket['subtipo_nombre']) ?> · <?= htmlspecialchars($ticket['sucursal']) ?></p>
 
     <div class="detail-grid">
         <div>
-            <h3>Información del Cliente</h3>
+            <h3>Solicitante y sucursal</h3>
             <p><strong>Nombre:</strong> <?= htmlspecialchars($ticket['nombre'] . ' ' . $ticket['apellido']) ?></p>
             <p><strong>Correo:</strong> <?= htmlspecialchars($ticket['correo']) ?></p>
             <p><strong>Celular:</strong> <?= htmlspecialchars($ticket['celular']) ?></p>
-            <p><strong>ISP:</strong> <?= htmlspecialchars(\App\Entities\Ticket::etiquetaIsp($ticket['isp'])) ?></p>
+            <p><strong>Sucursal:</strong> <?= htmlspecialchars($ticket['sucursal']) ?></p>
         </div>
         <div>
-            <h3>Información del Ticket</h3>
+            <h3>Clasificación</h3>
+            <p><strong>Tipo:</strong> <?= htmlspecialchars($ticket['tipo_nombre']) ?></p>
+            <p><strong>Motivo:</strong> <?= htmlspecialchars($ticket['subtipo_nombre']) ?></p>
+            <h3>Seguimiento</h3>
             <p><strong>Estado:</strong>
                 <span class="badge badge-<?= $ticket['estado'] ?>">
                     <?= ucfirst(str_replace('_', ' ', $ticket['estado'])) ?>
@@ -27,8 +30,11 @@ ob_start();
                 <p><strong>Última actualización:</strong> <?= date('d/m/Y H:i', strtotime($ticket['fecha_actualizacion'])) ?></p>
             <?php endif; ?>
             <?php if ($ticket['soporte_nombre']): ?>
-                <p><strong>Asignado a:</strong> <?= htmlspecialchars($ticket['soporte_nombre']) ?></p>
+                <p><strong>Soporte:</strong> <?= htmlspecialchars($ticket['soporte_nombre']) ?></p>
             <?php endif; ?>
+            <p><strong>Encargado de área:</strong>
+                <?= htmlspecialchars($ticket['encargado_nombre'] ?: 'Sin derivar') ?>
+            </p>
         </div>
     </div>
 
@@ -59,6 +65,21 @@ ob_start();
         </div>
     <?php endif; ?>
 
+    <?php if (($user['tipo'] ?? '') === 'soporte' && empty($ticket['encargado_id']) && $ticket['estado'] !== 'cerrado'): ?>
+        <form method="POST" action="/proyectoWebTicket/soporte/tickets/derivar" class="status-form">
+            <input type="hidden" name="ticket_id" value="<?= (int) $ticket['id'] ?>">
+            <?php if (!empty($encargadoArea)): ?>
+                <button type="submit" class="btn">
+                    Derivar a <?= htmlspecialchars($encargadoArea['nombre'] . ' ' . $encargadoArea['apellido']) ?>
+                    (<?= htmlspecialchars($encargadoArea['area_nombre']) ?>)
+                </button>
+            <?php else: ?>
+                <p class="form-hint">No hay un encargado registrado para el área <?= htmlspecialchars($ticket['tipo_nombre']) ?>.</p>
+            <?php endif; ?>
+        </form>
+    <?php endif; ?>
+
+    <?php if (!empty($puedeGestionar)): ?>
     <form method="POST" action="/proyectoWebTicket/soporte/tickets/cambiar-estado" class="status-form">
         <input type="hidden" name="ticket_id" value="<?= $ticket['id'] ?>">
         <input type="hidden" name="estado_actual" value="<?= htmlspecialchars($ticket['estado']) ?>">
@@ -69,6 +90,7 @@ ob_start();
             <option value="cerrado" <?= $ticket['estado'] === 'cerrado' ? 'selected' : '' ?>>Cerrado</option>
         </select>
     </form>
+    <?php endif; ?>
 </div>
 
 <div class="card">
@@ -92,6 +114,7 @@ ob_start();
         </div>
     <?php endif; ?>
 
+    <?php if ($puedeGestionar): ?>
     <div style="margin-top: 24px;">
         <h3 class="form-section__title">Responder</h3>
         <form method="POST" action="/proyectoWebTicket/soporte/tickets/responder">
@@ -102,6 +125,7 @@ ob_start();
             <button type="submit" class="btn">Enviar respuesta</button>
         </form>
     </div>
+    <?php endif; ?>
 </div>
 
 <p style="margin-top: 8px;">
