@@ -1,28 +1,21 @@
-# SoporteTicket — Sistema de Gestión de Tickets
+# Intranet Tambo — Tickets de sucursal
 
-Aplicación web en **PHP 8.2** con arquitectura **MVC** propia y MySQL. La intranet atiende tickets de sucursales Tambo. El registro de tickets exige iniciar sesión.
+Aplicación web en **PHP 8.2** con arquitectura **MVC** propia y MySQL. El personal de tienda registra tickets desde la intranet. Soporte los atiende y los deriva al encargado de cada área: Logístico, Tecnológico, Administrativo u Otros.
+
+La URL de desarrollo es `http://localhost/proyectoWebTicket`.
 
 ---
 
-## Requisitos del servidor
+## Requisitos
 
+| Componente | Versión mínima |
+| --- | --- |
+| PHP | 8.2+ |
+| MySQL / MariaDB | 5.7+ / 10.3+ |
+| Apache | 2.4+ con `mod_rewrite` |
+| Composer | 2.x |
 
-| Componente      | Versión mínima         |
-| --------------- | ---------------------- |
-| PHP             | 8.2+                   |
-| MySQL / MariaDB | 5.7+ / 10.3+           |
-| Apache          | 2.4+ con `mod_rewrite` |
-| Composer        | 2.x                    |
-
-
-### Extensiones PHP necesarias
-
-- `pdo_mysql`
-- `mbstring`
-- `fileinfo` (validación MIME de archivos adjuntos)
-- `session`
-
-Verificar con:
+Extensiones PHP: `pdo_mysql`, `mbstring`, `fileinfo` y `session`.
 
 ```bash
 php -m
@@ -30,60 +23,81 @@ php -m
 
 ---
 
-## Puesta en marcha rápida
+## Levantar la instancia
 
-Estos pasos aplican en **cualquier entorno** (Windows, Linux o macOS).
+Estos pasos dejan la aplicación lista para entrar con los usuarios de demostración. En XAMPP con la contraseña de `root` vacía, `config/config.php` ya apunta a esa base y no hace falta editarlo.
 
-### 1. Obtener el código
+### 1. Colocar el código en el servidor web
 
 ```bash
 git clone https://github.com/Bubblebug17/proyectoWebTicket/ proyectoWebTicket
 cd proyectoWebTicket
 ```
 
-O descomprimir el proyecto en la carpeta pública del servidor web (por ejemplo `htdocs/proyectoWebTicket` o `/var/www/html/proyectoWebTicket`).
+La carpeta debe quedar publicada por Apache. En XAMPP la ruta habitual es `C:\xampp82\htdocs\proyectoWebTicket`. En Linux, `/var/www/html/proyectoWebTicket`.
 
-### 2. Instalar dependencias
+### 2. Instalar el autoload
 
 ```bash
 composer install
 ```
 
-Genera la carpeta `vendor/` con el autoload PSR-4 (`App\` → `app/`).
+Crea `vendor/` con el autoload PSR-4 (`App\` → `app/`).
+
+Si Composer usa otro PHP distinto del de XAMPP:
+
+```powershell
+C:\xampp82\php\php.exe C:\ProgramData\ComposerSetup\bin\composer.phar install
+```
 
 ### 3. Crear la base de datos
 
-Importar el esquema incluido:
+Iniciar **Apache** y **MySQL**. Luego importar el esquema una sola vez:
 
 ```bash
 mysql -u root -p < database/schema.sql
 ```
 
-O desde **phpMyAdmin**: Importar → seleccionar `database/schema.sql`.
+En XAMPP, con `root` sin contraseña:
 
-El script crea:
+```powershell
+C:\xampp82\mysql\bin\mysql.exe -u root --default-character-set=utf8mb4 < database\schema.sql
+```
 
-- Base de datos: `ticket_system`
-- Tablas: `usuarios`, `tickets`, `mensajes`
-- Usuario demo de soporte (ver sección [Acceso de prueba](#acceso-de-prueba))
+También se puede importar `database/schema.sql` desde phpMyAdmin (`http://localhost/phpmyadmin`).
 
-### 4. Configurar la aplicación
+El script crea la base `ticket_system` y estas tablas:
 
-Editar `config/config.php`:
+- `sucursales`: TB-MIR Miraflores, TB-SBO San Borja y TB-OLI Los Olivos
+- `usuarios`: perfiles de tienda, soporte y un encargado por área
+- `tipos_ticket` y `subtipos_ticket`: 4 áreas y 6 motivos por área
+- `tickets` y `mensajes`: vacías hasta que se registre un ticket o se ejecute el seeder
+
+`schema.sql` usa `CREATE TABLE IF NOT EXISTS`. Si `ticket_system` ya existe de una versión anterior, no actualiza columnas viejas. Para una instancia limpia:
+
+```sql
+DROP DATABASE IF EXISTS ticket_system;
+```
+
+y volver a importar el archivo.
+
+### 4. Revisar la configuración
+
+`config/config.php` de desarrollo:
 
 ```php
 return [
     'database' => [
-        'host' => 'localhost',       // Host MySQL
+        'host' => 'localhost',
         'dbname' => 'ticket_system',
-        'username' => 'root',        // Usuario MySQL del entorno
-        'password' => '',            // Contraseña MySQL
+        'username' => 'root',
+        'password' => '',
         'charset' => 'utf8mb4'
     ],
     'app' => [
-        'name' => 'SoporteTicket',
-        'url' => 'http://localhost/proyectoWebTicket',  // URL pública base
-        'timezone' => 'America/Lima'                     // Zona horaria PHP
+        'name' => 'Intranet Tambo',
+        'url' => 'http://localhost/proyectoWebTicket',
+        'timezone' => 'America/Lima'
     ],
     'session' => [
         'lifetime' => 3600,
@@ -92,31 +106,33 @@ return [
 ];
 ```
 
-Ajustar `**database**` según las credenciales del nuevo entorno y `**app.url**` con la URL real donde se alojará el proyecto.
+Cambiar usuario, contraseña y `app.url` si el entorno no es el de XAMPP local.
 
-### 5. Permisos de escritura
+### 5. Carpeta de adjuntos
 
-El sistema guarda adjuntos en `public/uploads/`. Crear la carpeta si no existe y dar permisos de escritura al usuario del servidor web:
+Los archivos del formulario se guardan en `public/uploads/`.
 
 ```bash
 mkdir -p public/uploads
 chmod 775 public/uploads
 ```
 
-En Linux con Apache:
+En Windows:
+
+```powershell
+mkdir public\uploads -Force
+```
+
+En Linux, el usuario de Apache debe poder escribir ahí:
 
 ```bash
 sudo chown -R www-data:www-data public/uploads
+sudo chmod 775 public/uploads
 ```
 
-### 6. Apache: URLs amigables
+### 6. Comprobar Apache
 
-El archivo `.htaccess` en la raíz redirige todas las peticiones a `index.php`. Requisitos:
-
-1. `**mod_rewrite` habilitado**
-2. `**AllowOverride All`** en el directorio del proyecto
-
-Ejemplo en `httpd.conf` o virtual host:
+El `.htaccess` de la raíz envía las rutas a `index.php`. Hacen falta `mod_rewrite` y `AllowOverride All` sobre la carpeta del proyecto.
 
 ```apache
 <Directory "/ruta/al/proyectoWebTicket">
@@ -126,86 +142,88 @@ Ejemplo en `httpd.conf` o virtual host:
 </Directory>
 ```
 
-Reiniciar Apache después de cambios.
+En XAMPP, `mod_rewrite` suele estar activo y `htdocs` ya permite `.htaccess`. Si una ruta devuelve 404 de Apache, revisar `httpd.conf` y reiniciar Apache.
 
-### 7. Verificar instalación
+### 7. Abrir la intranet
 
-Abrir en el navegador la URL configurada (ejemplo por defecto):
+| Recurso | URL |
+| --- | --- |
+| Entrada | http://localhost/proyectoWebTicket |
+| Login | http://localhost/proyectoWebTicket/login |
+| Nuevo ticket | http://localhost/proyectoWebTicket/ticket/create |
+| Dashboard de soporte | http://localhost/proyectoWebTicket/soporte/dashboard |
 
-
-| Recurso            | URL                                                    |
-| ------------------ | ------------------------------------------------------ |
-| Intranet           | `http://localhost/proyectoWebTicket`                   |
-| Login              | `http://localhost/proyectoWebTicket/login`             |
-| Dashboard          | `http://localhost/proyectoWebTicket/soporte/dashboard` |
-
+La raíz redirige al login o al inicio del perfil que ya tenga sesión.
 
 ---
 
-## Cambiar la ruta o dominio del proyecto
+## Acceso de prueba
 
-Si el proyecto **no** se instala en `/proyectoWebTicket`, hay que alinear la ruta base en varios puntos. Ejemplo: mover a `https://tickets.midominio.com/` (raíz) o a `https://midominio.com/soporte/`.
+La contraseña de todos es `password`.
 
+| Perfil | Área | Correo | Al ingresar |
+| --- | --- | --- | --- |
+| Responsable de tienda | — | `tienda@demo.com` | Formulario de ticket |
+| Soporte | — | `soporte@demo.com` | Dashboard |
+| Responsable de área | Logístico | `area@demo.com` | Mis tickets |
+| Responsable de área | Tecnológico | `tecnologia@demo.com` | Mis tickets |
+| Responsable de área | Administrativo | `administracion@demo.com` | Mis tickets |
+| Responsable de área | Otros | `otros@demo.com` | Mis tickets |
 
-| Archivo                            | Qué cambiar                                              |
-| ---------------------------------- | -------------------------------------------------------- |
-| `config/config.php`                | `app.url` → URL pública completa                         |
-| `.htaccess`                        | `RewriteBase /proyectoWebTicket/` → tu subcarpeta o `/`  |
-| `app/Core/Request.php`             | `$basePath = '/proyectoWebTicket'` → misma ruta          |
-| `app/Views/soporte/view_ticket.php` | URL de los adjuntos en `public/uploads`                 |
-| Vistas, controladores y middleware | Enlaces y redirecciones con prefijo `/proyectoWebTicket` |
+La tienda pertenece a Tambo Miraflores. Soporte ve todos los tickets, los deriva al encargado del área y consulta reportes. Cada encargado solo gestiona los tickets que le derivaron.
 
+### Tickets de ejemplo
 
-Buscar todas las ocurrencias:
+Opcional, solo en desarrollo. Inserta 80 tickets con mensajes:
 
 ```bash
-# Linux / macOS / Git Bash
-grep -r "proyectoWebTicket" app/ config/ public/
-
-# Windows PowerShell
-Select-String -Path app\*,config\* -Pattern "proyectoWebTicket" -Recurse
+php database/seed_tickets_mensajes.php
 ```
 
-Reemplazar `/proyectoWebTicket` por la ruta base del nuevo entorno (por ejemplo `/soporte` o dejar vacío si está en la raíz del dominio).
+Otras formas:
 
-> **Recomendación:** si el despliegue es en producción con dominio propio, centralizar la URL base en `config/config.php` y usarla en vistas/controladores en una iteración futura.
+```bash
+php database/seed_tickets_mensajes.php --count=40
+php database/seed_tickets_mensajes.php --fresh
+```
+
+`--fresh` vacía `tickets` y `mensajes` antes de cargar. Sin esa opción, los tickets se agregan a los que ya existan.
+
+En XAMPP:
+
+```powershell
+C:\xampp82\php\php.exe database\seed_tickets_mensajes.php
+```
 
 ---
 
-## Instalación en Windows (XAMPP)
+## Otra ruta o dominio
 
-### Requisitos
+Si la aplicación no vive en `/proyectoWebTicket`, hay que cambiar el prefijo en todos estos puntos:
 
-1. [XAMPP](https://www.apachefriends.org/) con PHP 8.2 (ej. `C:\xampp82\`)
-2. [Composer](https://getcomposer.org/download/) apuntando al PHP de XAMPP:
-  ```
-   C:\xampp82\php\php.exe
-  ```
+| Archivo | Qué cambiar |
+| --- | --- |
+| `config/config.php` | `app.url` |
+| `.htaccess` | `RewriteBase /proyectoWebTicket/` |
+| `app/Core/Request.php` | `$basePath = '/proyectoWebTicket'` |
+| Vistas y controladores | Enlaces y redirecciones que empiezan por `/proyectoWebTicket` |
+| `app/Views/soporte/view_ticket.php` | URL de los archivos en `public/uploads` |
 
-### Pasos
-
-```powershell
-cd C:\xampp82\htdocs\proyectoWebTicket
-composer install
-mkdir public\uploads -Force
+```bash
+grep -r "proyectoWebTicket" app/ config/ public/ .htaccess
 ```
 
-1. Iniciar **Apache** y **MySQL** desde el panel de XAMPP
-2. Importar `database/schema.sql` en phpMyAdmin (`http://localhost/phpmyadmin`)
-3. Editar `config/config.php` (credenciales MySQL; en XAMPP la contraseña de `root` suele estar vacía)
-4. Acceder a `http://localhost/proyectoWebTicket`
-
-Si Composer usa otra versión de PHP:
+En PowerShell:
 
 ```powershell
-C:\xampp82\php\php.exe C:\ProgramData\ComposerSetup\bin\composer.phar install
+Get-ChildItem -Recurse -Include *.php,*.htaccess,*.css,*.js | Select-String "proyectoWebTicket"
 ```
+
+En la raíz del dominio, `RewriteBase` pasa a `/` y `$basePath` queda vacío.
 
 ---
 
 ## Instalación en Linux
-
-### Paquetes (Ubuntu/Debian)
 
 ```bash
 sudo apt update
@@ -214,8 +232,6 @@ sudo apt install php8.2 php8.2-cli php8.2-mysql php8.2-mbstring php8.2-xml php8.
 sudo a2enmod rewrite
 sudo systemctl restart apache2
 ```
-
-### Despliegue
 
 ```bash
 sudo mkdir -p /var/www/html/proyectoWebTicket
@@ -227,7 +243,7 @@ sudo chmod -R 775 public/uploads
 mysql -u root -p < database/schema.sql
 ```
 
-Virtual host opcional (`/etc/apache2/sites-available/proyectoWebTicket.conf`):
+Virtual host opcional en `/etc/apache2/sites-available/proyectoWebTicket.conf`:
 
 ```apache
 <VirtualHost *:80>
@@ -246,83 +262,77 @@ sudo a2ensite proyectoWebTicket.conf
 sudo systemctl reload apache2
 ```
 
+Agregar `127.0.0.1 tickets.local` en `/etc/hosts` y abrir `http://tickets.local`. En ese caso también hay que ajustar el prefijo de la sección anterior, porque el `.htaccess` sigue esperando `/proyectoWebTicket`.
+
 ---
 
-## Acceso de prueba
-
-Tras importar `database/schema.sql`:
-
-
-| Rol | Email | Contraseña |
-| --- | --- | --- |
-| Responsable de tienda | `tienda@demo.com` | `password` |
-| Soporte | `soporte@demo.com` | `password` |
-| Logístico | `area@demo.com` | `password` |
-| Tecnológico | `tecnologia@demo.com` | `password` |
-| Administrativo | `administracion@demo.com` | `password` |
-| Otros | `otros@demo.com` | `password` |
-
-### Datos de ejemplo (opcional)
+## Pruebas
 
 ```bash
-php database/seed_tickets_mensajes.php
+php tools/install-phpunit.php
+composer test
 ```
 
-Ejecutar solo en entornos de desarrollo.
+O directamente:
+
+```bash
+php tools/phpunit.phar --do-not-cache-result
+```
 
 ---
 
-## Estructura del proyecto
+## Estructura
 
 ```
 proyectoWebTicket/
 ├── app/
-│   ├── Controllers/      # Controladores HTTP
-│   ├── Core/             # Application, Router, Request, Database, Session…
-│   │   └── Middleware/   # AuthMiddleware
-│   ├── Entities/         # Usuario, Ticket, Mensaje
-│   ├── Models/           # Acceso a datos (PDO)
-│   └── Views/            # Plantillas PHP
-├── config/
-│   └── config.php        # Configuración BD, app y sesión
+│   ├── Controllers/       # Auth, tickets, soporte y reportes
+│   ├── Core/              # Application, Router, Request, Database, Session
+│   │   └── Middleware/    # AuthMiddleware
+│   ├── Entities/          # Usuario, Ticket, Mensaje
+│   ├── Models/            # PDO
+│   └── Views/             # Plantillas PHP
+├── config/config.php
 ├── database/
-│   └── schema.sql        # Esquema MySQL
+│   ├── schema.sql         # Instalación nueva, sin tickets
+│   └── seed_tickets_mensajes.php
 ├── public/
-│   ├── css/app.css       # Estilos globales
-│   ├── js/               # Validación de formularios, upload
-│   └── uploads/          # Adjuntos de tickets (escritura requerida)
-├── tests/Unit/           # Pruebas PHPUnit
-├── tools/                # Scripts PHPUnit (install-phpunit.php)
-├── index.php             # Punto de entrada
-├── .htaccess             # Rewrite → index.php
+│   ├── css/app.css
+│   ├── img/               # Logo y sello Tambo
+│   ├── js/
+│   └── uploads/           # Adjuntos
+├── tests/Unit/
+├── tools/                 # PHPUnit
+├── index.php
+├── .htaccess
 ├── composer.json
 └── phpunit.xml
 ```
 
 ---
 
-## Rutas principales
+## Rutas
 
+El prefijo `/proyectoWebTicket` se omite en esta tabla.
 
-| Método | Ruta                              | Descripción                     |
-| ------ | --------------------------------- | ------------------------------- |
-| GET    | `/`                               | Redirige al inicio del perfil   |
-| GET    | `/ticket/create`                  | Formulario de ticket (intranet) |
-| POST   | `/ticket/create`                  | Enviar ticket                   |
-| GET    | `/login`                          | Login de la intranet            |
-| POST   | `/login`                          | Autenticación                   |
-| GET    | `/logout`                         | Cerrar sesión                   |
-| GET    | `/soporte/dashboard`              | Dashboard con resumen y listado |
-| GET    | `/soporte/tickets`                | Listado completo                |
-| GET    | `/soporte/tickets/view?id={id}`   | Detalle y mensajes              |
-| POST   | `/soporte/tickets/derivar`        | Derivar al encargado de área    |
-| POST   | `/soporte/tickets/responder`      | Responder ticket                |
-| POST   | `/soporte/tickets/cambiar-estado` | Cambiar estado                  |
-| GET    | `/soporte/reportes`               | Reportes gráficos               |
+| Método | Ruta | Quién | Descripción |
+| --- | --- | --- | --- |
+| GET | `/` | Público | Redirige al login o al inicio del perfil |
+| GET, POST | `/login` | Público | Ingreso a la intranet |
+| GET | `/logout` | Sesión | Cierra la sesión |
+| GET, POST | `/ticket/create` | Todos los perfiles | Registrar un ticket |
+| GET | `/soporte/dashboard` | Soporte | Resumen y últimos tickets |
+| GET | `/soporte/tickets` | Soporte y encargado | Listado. El encargado ve solo los suyos |
+| GET | `/soporte/tickets/view?id={id}` | Soporte y encargado asignado | Detalle y mensajes |
+| POST | `/soporte/tickets/derivar` | Soporte | Deriva el ticket al encargado del área |
+| POST | `/soporte/tickets/responder` | Soporte y encargado asignado | Responde el ticket |
+| POST | `/soporte/tickets/cambiar-estado` | Soporte y encargado asignado | Cambia el estado |
+| GET | `/soporte/reportes` | Soporte | Reportes |
+| GET | `/reportes/exportarExcel` | Soporte | Exportación Excel |
+| GET | `/reportes/exportarPDF` | Soporte | Vista de impresión |
 
-
-El formulario de tickets exige sesión. El seguimiento lo usan soporte y el encargado de área. Dashboard, derivación y reportes son solo de soporte.
+---
 
 ## Licencia
 
-MIT License — ver `[LICENSE](LICENSE)`.
+MIT License — ver [LICENSE](LICENSE).
