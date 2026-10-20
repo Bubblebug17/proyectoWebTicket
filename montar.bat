@@ -6,7 +6,11 @@ title Intranet Tambo
 
 echo.
 echo === Intranet Tambo ===
-echo Descarga PHP y Apache locales si faltan, prepara la app y abre el login.
+if exist "%~dp0runtime\standalone.flag" (
+    echo Modo instalacion: Apache portable en puerto disponible ^(80/8080/8081/8082^).
+) else (
+    echo Montaje: runtime local, BD remota y servidor web.
+)
 echo.
 
 echo [1/5] Preparando runtime local (PHP + Apache)...
@@ -70,7 +74,7 @@ if not errorlevel 1 goto web_ok
 echo No hay servidor respondiendo aun. Intentando Apache portable (puerto %PORT%)...
 call "%~dp0tools\iniciar_apache.bat"
 if errorlevel 1 goto fallo
-timeout /t 2 /nobreak >nul
+ping 127.0.0.1 -n 3 >nul
 call "%~dp0tools\detectar_url_web.bat"
 if errorlevel 1 goto web_fallo
 
@@ -85,9 +89,10 @@ goto abrir
 
 :web_fallo
 echo.
-echo Ningun servidor respondio en:
-echo   http://localhost/proyectoWebTicket/login  ^(XAMPP, puerto 80^)
-echo   http://127.0.0.1:%PORT%/proyectoWebTicket/login  ^(portable^)
+echo Ningun servidor respondio en http://127.0.0.1:%PORT%/proyectoWebTicket/login
+if not exist "%~dp0runtime\standalone.flag" (
+    echo   ^(tambien se probo XAMPP en http://localhost/proyectoWebTicket/login^)
+)
 echo.
 echo Si usa solo el runtime portable, instale Visual C++ Redistributable x64:
 echo https://aka.ms/vs/17/release/vc_redist.x64.exe

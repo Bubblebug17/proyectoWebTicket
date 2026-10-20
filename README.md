@@ -27,32 +27,34 @@ php -m
 
 La base de datos es remota. El host, el nombre y el usuario están en `config/config.php`. No hace falta un MySQL local.
 
-### Instancia independiente (desde cero, otra carpeta)
+### Windows — instalar desde cero (recomendado)
 
-Doble clic en **`instalar_instancia.bat`** (o con ruta custom: `instalar_instancia.bat D:\MiCarpeta`):
+**1. Clonar el repositorio (manual)**
 
-1. Copia el proyecto a `%USERPROFILE%\IntranetTambo-instancia` (sin `vendor/`, sin `runtime/` previo del origen).
-2. Marca la instancia como **standalone** (`runtime/standalone.flag`): no usa XAMPP, solo Apache portable.
-3. Ejecuta `montar.bat` en esa copia (descarga PHP/Apache, BD remota de `config/config.php`).
+```batch
+git clone https://github.com/Bubblebug17/proyectoWebTicket.git
+cd proyectoWebTicket
+```
 
-Puerto HTTP: el primero libre entre **80 → 8080 → 8081 → 8082** (se guarda en `runtime/apache-port.txt`).
+**2. Ejecutar el instalador**
 
-### Montar en la carpeta actual
+Doble clic en **`instalar.bat`** (o desde la consola en la raíz del clone):
 
-En Windows, **doble clic en `montar.bat`** (el proyecto puede estar en cualquier carpeta, no hace falta XAMPP):
+```batch
+instalar.bat
+```
 
-1. **Descarga e instala** PHP 8.2 (Thread Safe) y Apache 2.4 en `runtime/` si aún no existen (ver `tools/runtime-manifest.json`).
-2. Genera `runtime/apache/conf/httpd-portable.conf` con alias `/proyectoWebTicket` apuntando a la carpeta del repo.
-3. Ejecuta `composer install` con `tools/composer.phar` (también se descarga automáticamente). Si falla, crea `vendor/autoload.php`.
-4. Crea `public/uploads` si falta.
-5. Aplica `database/schema.sql` en la base remota de `config/config.php` (idempotente).
-6. Abre el login en la URL que responda:
-   - **XAMPP ya instalado:** `http://localhost/proyectoWebTicket/login` (puerto 80, misma carpeta del repo).
-   - **Solo runtime portable:** `http://127.0.0.1:{puerto}/proyectoWebTicket/login` (puerto en `runtime/apache-port.txt`, por defecto **8080** si el 80 está ocupado).
+Descarga **PHP 8.2** y **Apache 2.4** en `runtime/`, instala dependencias, prepara la **BD remota** (`config/config.php`) y crea `public/uploads`.
 
-No se crea otra copia del proyecto: `runtime/` es PHP y Apache descargados **dentro** del mismo repositorio.
+**3. Acceder al sistema**
 
-**Requisitos en PC nueva:** Windows 10/11, conexión a Internet la primera vez, y [Visual C++ Redistributable x64](https://aka.ms/vs/17/release/vc_redist.x64.exe) (Apache y PHP lo necesitan).
+El instalador elige el **primer puerto HTTP libre** entre **80 → 8080 → 8081 → 8082** (valor en `runtime/apache-port.txt`) y abre el navegador en:
+
+`http://127.0.0.1:{puerto}/proyectoWebTicket/login`
+
+**Requisitos en PC nueva:** Windows 10/11, Internet la primera vez, [Visual C++ Redistributable x64](https://aka.ms/vs/17/release/vc_redist.x64.exe).
+
+`instalar.bat` activa modo **standalone** (`runtime/standalone.flag`): usa solo Apache portable, no depende de XAMPP.
 
 Para volver a descargar PHP/Apache:
 
@@ -60,16 +62,22 @@ Para volver a descargar PHP/Apache:
 powershell -ExecutionPolicy Bypass -File tools\provision_runtime.ps1 -Force
 ```
 
-La carpeta `runtime/` no se versiona en git (ver `.gitignore`).
+La carpeta `runtime/` no se versiona (`.gitignore`).
 
-### 1. Colocar el código en el servidor web
+### Montar en desarrollo (XAMPP opcional)
+
+**`montar.bat`** hace el mismo núcleo que el instalador. Si **no** existe `runtime/standalone.flag`, puede reutilizar XAMPP en el puerto 80 cuando el proyecto está en `htdocs`.
+
+### Linux / servidor
 
 ```bash
-git clone https://github.com/Bubblebug17/proyectoWebTicket/ proyectoWebTicket
+git clone https://github.com/Bubblebug17/proyectoWebTicket.git
 cd proyectoWebTicket
+composer install
+php tools/montar.php
 ```
 
-La carpeta debe quedar publicada por Apache. En XAMPP la ruta habitual es `C:\xampp82\htdocs\proyectoWebTicket`. En Linux, `/var/www/html/proyectoWebTicket`.
+Publicar con Apache/Nginx apuntando al directorio del clone (ver sección más abajo).
 
 ### 2. Instalar el autoload
 
