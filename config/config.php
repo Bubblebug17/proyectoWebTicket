@@ -10,8 +10,11 @@ return [
     ],
     'app' => [
         'name' => 'Intranet Tambo',
-        'url' => 'http://localhost/proyectoWebTicket',
-        'timezone' => 'America/Lima'
+        // null o 'auto': se deduce del host y SCRIPT_NAME (IIS, Apache, subcarpeta o raíz).
+        'url' => null,
+        // null: prefijo automático; '' raíz del sitio; '/mi-carpeta' para forzar.
+        'base_path' => null,
+        'timezone' => 'America/Lima',
     ],
     'session' => [
         'lifetime' => 3600, // 1 hora

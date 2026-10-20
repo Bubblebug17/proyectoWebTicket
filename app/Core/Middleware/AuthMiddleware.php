@@ -2,6 +2,7 @@
 
 namespace App\Core\Middleware;
 
+use App\Core\AppUrl;
 use App\Core\Session;
 use App\Entities\Usuario;
 
@@ -24,7 +25,7 @@ class AuthMiddleware
     {
         // Verificar si el usuario está autenticado
         if (!$this->session->has('user')) {
-            header('Location: /proyectoWebTicket/login');
+            header('Location: ' . AppUrl::path('login'));
             return false;
         }
 

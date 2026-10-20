@@ -20,16 +20,24 @@ class Request
      */
     public function getPath(): string
     {
-        $path = $_SERVER['REQUEST_URI'] ?? '/';
+        $path = $_SERVER['HTTP_X_ORIGINAL_URL']
+            ?? $_SERVER['UNENCODED_URL']
+            ?? $_SERVER['REQUEST_URI']
+            ?? '/';
+        $path = str_replace('\\', '/', (string) $path);
         $position = strpos($path, '?');
 
         if ($position !== false) {
             $path = substr($path, 0, $position);
         }
 
-        $basePath = '/proyectoWebTicket';
-        if (strpos($path, $basePath) === 0) {
-            $path = substr($path, strlen($basePath));
+        $basePath = AppUrl::basePath();
+        if ($basePath !== '' && str_starts_with($path, $basePath)) {
+            $path = substr($path, strlen($basePath)) ?: '/';
+        }
+
+        if ($path === '/index.php' || str_ends_with($path, '/index.php')) {
+            $path = '/';
         }
 
         return $path === '' ? '/' : rtrim($path, '/');

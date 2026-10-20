@@ -7,7 +7,7 @@ ob_start();
     <h2>Reportes de Tickets</h2>
     <p>Estado y distribución de los tickets de sucursales Tambo.</p>
 
-    <form method="GET" action="/proyectoWebTicket/soporte/reportes" class="report-filters">
+    <form method="GET" action="<?= htmlspecialchars(app_url('soporte/reportes')) ?>" class="report-filters">
         <div class="form-group">
             <label for="fecha_desde">Fecha desde</label>
             <input type="date" id="fecha_desde" name="fecha_desde"
@@ -30,9 +30,9 @@ ob_start();
     ?>
 
     <div class="export-actions">
-        <a href="/proyectoWebTicket/reportes/exportarExcel<?= $suffixFiltros ?>"
+        <a href="<?= htmlspecialchars(app_url('reportes/exportarExcel' . $suffixFiltros)) ?>"
            class="btn btn-success btn-export">Exportar a Excel</a>
-        <a href="/proyectoWebTicket/reportes/exportarPDF<?= $suffixFiltros ?>"
+        <a href="<?= htmlspecialchars(app_url('reportes/exportarPDF' . $suffixFiltros)) ?>"
            class="btn btn-export" target="_blank" rel="noopener">Imprimir Reporte PDF</a>
     </div>
 </div>

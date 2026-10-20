@@ -95,7 +95,7 @@ class SoporteController extends BaseController
         $ticketData = $this->ticketModel->findById($ticketId);
 
         if (!$ticketData || !$this->puedeVerTicket($user, $ticketData)) {
-            $destino = '/proyectoWebTicket/soporte/tickets';
+            $destino = 'soporte/tickets';
             if (($user['tipo'] ?? '') === 'responsable_area') {
                 $destino .= '?error=no_asignado';
             }
@@ -128,23 +128,23 @@ class SoporteController extends BaseController
         $ticket = $this->ticketModel->findById($ticketId);
 
         if (!$ticket) {
-            $this->redirect('/proyectoWebTicket/soporte/tickets');
+            $this->redirect('soporte/tickets');
             return;
         }
 
         if ($ticket['estado'] === 'cerrado') {
-            $this->redirect("/proyectoWebTicket/soporte/tickets/view?id={$ticketId}&error=ticket_cerrado");
+            $this->redirect("soporte/tickets/view?id={$ticketId}&error=ticket_cerrado");
             return;
         }
 
         $encargado = $this->usuarioModel->findEncargadoPorArea((int) $ticket['tipo_id']);
         if ($encargado === null) {
-            $this->redirect("/proyectoWebTicket/soporte/tickets/view?id={$ticketId}&error=sin_encargado");
+            $this->redirect("soporte/tickets/view?id={$ticketId}&error=sin_encargado");
             return;
         }
 
         $this->ticketModel->derivar($ticketId, $encargado['id']);
-        $this->redirect("/proyectoWebTicket/soporte/tickets/view?id={$ticketId}");
+        $this->redirect("soporte/tickets/view?id={$ticketId}");
     }
 
     /**
@@ -158,7 +158,7 @@ class SoporteController extends BaseController
 
         $ticket = $this->ticketModel->findById($ticketId);
         if (!$ticket || !$this->puedeGestionarTicket($user, $ticket) || trim((string) $mensaje) === '') {
-            $this->redirect("/proyectoWebTicket/soporte/tickets/view?id={$ticketId}");
+            $this->redirect("soporte/tickets/view?id={$ticketId}");
             return;
         }
 
@@ -172,7 +172,7 @@ class SoporteController extends BaseController
             $this->ticketModel->updateEstado($ticketId, 'en_proceso', 'abierto', $soporteId);
         }
 
-        $this->redirect("/proyectoWebTicket/soporte/tickets/view?id={$ticketId}");
+        $this->redirect("soporte/tickets/view?id={$ticketId}");
     }
 
     /**
@@ -192,7 +192,7 @@ class SoporteController extends BaseController
             || !TicketModel::estadoEsValido($estado)
             || !TicketModel::estadoEsValido($estadoActual)
         ) {
-            $this->redirect("/proyectoWebTicket/soporte/tickets/view?id={$ticketId}&error=estado_invalido");
+            $this->redirect("soporte/tickets/view?id={$ticketId}&error=estado_invalido");
             return;
         }
 
@@ -200,11 +200,11 @@ class SoporteController extends BaseController
         $actualizado = $this->ticketModel->updateEstado($ticketId, $estado, $estadoActual, $soporteId);
 
         if (!$actualizado) {
-            $this->redirect("/proyectoWebTicket/soporte/tickets/view?id={$ticketId}&error=conflicto_concurrencia");
+            $this->redirect("soporte/tickets/view?id={$ticketId}&error=conflicto_concurrencia");
             return;
         }
 
-        $this->redirect("/proyectoWebTicket/soporte/tickets/view?id={$ticketId}");
+        $this->redirect("soporte/tickets/view?id={$ticketId}");
     }
 
     private function puedeVerTicket(array $user, array $ticket): bool

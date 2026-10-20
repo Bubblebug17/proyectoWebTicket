@@ -18,7 +18,7 @@ ob_start();
         </div>
     <?php endif; ?>
 
-    <form method="POST" action="/proyectoWebTicket/ticket/create" enctype="multipart/form-data" id="ticketForm" class="needs-validation" novalidate>
+    <form method="POST" action="<?= htmlspecialchars(app_url('ticket/create')) ?>" enctype="multipart/form-data" id="ticketForm" class="needs-validation" novalidate>
         <section class="form-section">
             <h2 class="form-section__title">Datos del solicitante</h2>
             <div class="detail-grid">
@@ -112,8 +112,8 @@ ob_start();
 </div>
 
 <script type="application/json" id="catalogo-ticket"><?= json_encode($catalogo ?? [], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
-<script src="/proyectoWebTicket/public/js/file-upload.js"></script>
-<script src="/proyectoWebTicket/public/js/form-validation.js?v=sucursales"></script>
+<script src="<?= htmlspecialchars(app_asset('js/file-upload.js')) ?>"></script>
+<script src="<?= htmlspecialchars(app_asset('js/form-validation.js?v=sucursales')) ?>"></script>
 
 <?php
 $content = ob_get_clean();

@@ -87,7 +87,7 @@ ob_start();
                             <td><?= htmlspecialchars($ticket['encargado_nombre'] ?: 'Sin derivar') ?></td>
                             <td><?= date('d/m/Y H:i', strtotime($ticket['fecha_creacion'])) ?></td>
                             <td>
-                                <a href="/proyectoWebTicket/soporte/tickets/view?id=<?= $ticket['id'] ?>" class="action-link">
+                                <a href="<?= htmlspecialchars(app_url('soporte/tickets/view?id=' . (int) $ticket['id'])) ?>" class="action-link">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                                         <circle cx="12" cy="12" r="3"/>
@@ -104,17 +104,17 @@ ob_start();
         <?php if ($totalPages > 1): ?>
             <div class="pagination">
                 <?php if ($currentPage > 1): ?>
-                    <a href="/proyectoWebTicket/soporte/dashboard?page=<?= $currentPage - 1 ?>" class="btn btn--ghost btn--sm">Anterior</a>
+                    <a href="<?= htmlspecialchars(app_url('soporte/dashboard?page=' . ($currentPage - 1))) ?>" class="btn btn--ghost btn--sm">Anterior</a>
                 <?php endif; ?>
 
                 <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                    <a href="/proyectoWebTicket/soporte/dashboard?page=<?= $i ?>" class="btn btn--sm<?= $i === $currentPage ? ' is-active' : '' ?>">
+                    <a href="<?= htmlspecialchars(app_url('soporte/dashboard?page=' . $i)) ?>" class="btn btn--sm<?= $i === $currentPage ? ' is-active' : '' ?>">
                         <?= $i ?>
                     </a>
                 <?php endfor; ?>
 
                 <?php if ($currentPage < $totalPages): ?>
-                    <a href="/proyectoWebTicket/soporte/dashboard?page=<?= $currentPage + 1 ?>" class="btn btn--ghost btn--sm">Siguiente</a>
+                    <a href="<?= htmlspecialchars(app_url('soporte/dashboard?page=' . ($currentPage + 1))) ?>" class="btn btn--ghost btn--sm">Siguiente</a>
                 <?php endif; ?>
             </div>
         <?php endif; ?>

@@ -8,7 +8,7 @@ ob_start();
     <div class="success-card__icon" aria-hidden="true">✓</div>
     <h1 class="card__title">¡Ticket enviado exitosamente!</h1>
     <p class="success-card__message"><?= htmlspecialchars($mensaje) ?></p>
-    <a href="/proyectoWebTicket" class="btn btn--block">Enviar otro ticket</a>
+    <a href="<?= htmlspecialchars(app_url('ticket/create')) ?>" class="btn btn--block">Enviar otro ticket</a>
 </div>
 
 <?php

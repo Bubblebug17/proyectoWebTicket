@@ -50,7 +50,7 @@ ob_start();
                             <?php endif; ?>
                             <td><?= date('d/m/Y H:i', strtotime($ticket['fecha_creacion'])) ?></td>
                             <td>
-                                <a href="/proyectoWebTicket/soporte/tickets/view?id=<?= $ticket['id'] ?>" class="action-link">
+                                <a href="<?= htmlspecialchars(app_url('soporte/tickets/view?id=' . (int) $ticket['id'])) ?>" class="action-link">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                                         <circle cx="12" cy="12" r="3"/>

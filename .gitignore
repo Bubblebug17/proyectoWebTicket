@@ -1,8 +1,6 @@
 /vendor/
 /runtime/
 /tools/composer.phar
-.phpunit.cache/
-/tools/phpunit.phar
 .idea/
 .vscode/
 *.log

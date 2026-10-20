@@ -103,14 +103,14 @@ C:\xampp82\php\php.exe tools\montar.php
 
 Lee `config/config.php`, se conecta a esa base y aplica `database/schema.sql` sin crear otra base de datos. Deja:
 
-- `sucursales`: TB-MIR Miraflores, TB-SBO San Borja y TB-OLI Los Olivos
-- `usuarios`: tienda, soporte y un encargado por área
+- `sucursales`: TB-SAN San Isidro (sede principal), TB-MIR Miraflores (ventas/atención) y TB-LUR Lurín (logística)
+- `usuarios`: responsables de tienda/almacén, soporte en San Isidro y un encargado por área
 - `tipos_ticket` y `subtipos_ticket`: 4 áreas y 6 motivos por área
 - `tickets` y `mensajes`: vacías hasta registrar un ticket o ejecutar el seeder
 
 ### 4. Revisar la configuración
 
-La conexión remota y la URL pública están en `config/config.php`. Si el servidor de base cambia, editar solo `database`. `app.url` debe coincidir con la dirección del navegador.
+La conexión remota está en `config/config.php` (`database`). El prefijo de URL (`/proyectoWebTicket`, raíz del sitio IIS, etc.) se **detecta solo**; solo hace falta tocar `app.base_path` o `app.url` si quieres forzar un valor.
 
 ### 5. Carpeta de adjuntos
 
@@ -165,16 +165,27 @@ La raíz redirige al login o al inicio del perfil que ya tenga sesión.
 
 La contraseña de todos es `password`.
 
-| Perfil | Área | Correo | Al ingresar |
+| Perfil | Sede / área | Correo | Al ingresar |
 | --- | --- | --- | --- |
-| Responsable de tienda | — | `tienda@demo.com` | Formulario de ticket |
-| Soporte | — | `soporte@demo.com` | Dashboard |
-| Responsable de área | Logístico | `area@demo.com` | Mis tickets |
-| Responsable de área | Tecnológico | `tecnologia@demo.com` | Mis tickets |
-| Responsable de área | Administrativo | `administracion@demo.com` | Mis tickets |
-| Responsable de área | Otros | `otros@demo.com` | Mis tickets |
+| Responsable de tienda | Miraflores | `tienda@demo.com` | Formulario de ticket |
+| Responsable de almacén | Lurín | `almacen@demo.com` | Formulario de ticket |
+| Soporte | San Isidro | `soporte@demo.com` | Dashboard |
+| Responsable de área | Logístico · Lurín | `area@demo.com` | Mis tickets |
+| Responsable de área | Tecnológico · San Isidro | `tecnologia@demo.com` | Mis tickets |
+| Responsable de área | Administrativo · San Isidro | `administracion@demo.com` | Mis tickets |
+| Responsable de área | Otros · San Isidro | `otros@demo.com` | Mis tickets |
 
-La tienda pertenece a Tambo Miraflores. Soporte ve todos los tickets, los deriva al encargado del área y consulta reportes. Cada encargado solo gestiona los tickets que le derivaron.
+**Sedes:** San Isidro concentra soporte y las áreas administrativas, financieras y tecnológicas; Miraflores orienta ventas y atención al cliente; Lurín cubre operaciones logísticas, almacén y reposición.
+
+Soporte ve todos los tickets, los deriva al encargado del área y consulta reportes. Cada encargado solo gestiona los tickets que le derivaron.
+
+En la base remota de producción/academia los correos pueden ser `@tambo.pe`. Si las sedes ya están en `sucursales` pero los usuarios siguen en sedes antiguas:
+
+```bash
+php tools/aplicar_actualizar_sedes.php
+```
+
+El seeder de tickets lee las sedes y responsables de tienda que existan en la base.
 
 ### Tickets de ejemplo
 
@@ -201,29 +212,20 @@ C:\xampp82\php\php.exe database\seed_tickets_mensajes.php
 
 ---
 
-## Otra ruta o dominio
+## Otra ruta, IIS o dominio
 
-Si la aplicación no vive en `/proyectoWebTicket`, hay que cambiar el prefijo en todos estos puntos:
+Enlaces, formularios, redirecciones y assets usan `app_url()` / `App\Core\AppUrl`: el prefijo se deduce de `SCRIPT_NAME` (subcarpeta o raíz del sitio). No hace falta buscar `/proyectoWebTicket` en el código.
 
-| Archivo | Qué cambiar |
+| Entorno | Qué necesitas |
 | --- | --- |
-| `config/config.php` | `app.url` |
-| `.htaccess` | `RewriteBase /proyectoWebTicket/` |
-| `app/Core/Request.php` | `$basePath = '/proyectoWebTicket'` |
-| Vistas y controladores | Enlaces y redirecciones que empiezan por `/proyectoWebTicket` |
-| `app/Views/soporte/view_ticket.php` | URL de los archivos en `public/uploads` |
+| **Apache / XAMPP** | `mod_rewrite` y el `.htaccess` de la raíz del proyecto |
+| **IIS** | Copiar el proyecto a `inetpub` (o al sitio que uses), PHP con FastCGI y módulo **URL Rewrite**; incluye `web.config` en la raíz |
+| **Forzar prefijo** | En `config/config.php`: `'base_path' => '/mi-app'` |
+| **URL pública fija** (correos, etc.) | `'url' => 'https://tickets.midominio.com'` |
 
-```bash
-grep -r "proyectoWebTicket" app/ config/ public/ .htaccess
-```
+En IIS, el **directorio físico del sitio** debe ser la carpeta donde está `index.php` (no solo `public/`). Los estáticos siguen en `public/` y se sirven como `/public/css/...` respecto a esa raíz.
 
-En PowerShell:
-
-```powershell
-Get-ChildItem -Recurse -Include *.php,*.htaccess,*.css,*.js | Select-String "proyectoWebTicket"
-```
-
-En la raíz del dominio, `RewriteBase` pasa a `/` y `$basePath` queda vacío.
+Si algo falla con rutas bonitas, comprueba que las peticiones lleguen a `index.php` (reglas de rewrite) y que `public/uploads` exista con permisos de escritura.
 
 ---
 
@@ -266,22 +268,7 @@ sudo a2ensite proyectoWebTicket.conf
 sudo systemctl reload apache2
 ```
 
-Agregar `127.0.0.1 tickets.local` en `/etc/hosts` y abrir `http://tickets.local`. En ese caso también hay que ajustar el prefijo de la sección anterior, porque el `.htaccess` sigue esperando `/proyectoWebTicket`.
-
----
-
-## Pruebas
-
-```bash
-php tools/install-phpunit.php
-composer test
-```
-
-O directamente:
-
-```bash
-php tools/phpunit.phar --do-not-cache-result
-```
+Agregar `127.0.0.1 tickets.local` en `/etc/hosts` y abrir `http://tickets.local` (DocumentRoot = carpeta del proyecto; el prefijo queda en raíz automáticamente).
 
 ---
 
@@ -305,12 +292,10 @@ proyectoWebTicket/
 │   ├── img/               # Logo y sello Tambo
 │   ├── js/
 │   └── uploads/           # Adjuntos
-├── tests/Unit/
-├── tools/                 # PHPUnit
+├── tools/                 # montar.php, provision_runtime.ps1, instalador
 ├── index.php
 ├── .htaccess
-├── composer.json
-└── phpunit.xml
+└── composer.json
 ```
 
 ---

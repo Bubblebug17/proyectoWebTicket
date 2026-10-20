@@ -42,7 +42,7 @@ class TicketController extends BaseController
     {
         $solicitante = $this->solicitanteActual();
         if ($solicitante === null) {
-            $this->redirect('/proyectoWebTicket/login');
+            $this->redirect('login');
             return;
         }
 
@@ -112,7 +112,7 @@ class TicketController extends BaseController
     {
         $solicitante = $extra['solicitante'] ?? $this->solicitanteActual();
         if ($solicitante === null) {
-            $this->redirect('/proyectoWebTicket/login');
+            $this->redirect('login');
             return;
         }
 

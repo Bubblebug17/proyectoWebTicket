@@ -47,7 +47,7 @@ ob_start();
         <div class="detail-block">
             <h3>Archivo adjunto</h3>
             <?php
-            $fileUrl = '/proyectoWebTicket/public/uploads/' . $ticket['archivo'];
+            $fileUrl = app_asset('uploads/' . $ticket['archivo']);
             $extension = strtolower(pathinfo($ticket['archivo'], PATHINFO_EXTENSION));
             $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
             $videoExtensions = ['mp4', 'mpeg', 'mov', 'avi'];
@@ -66,7 +66,7 @@ ob_start();
     <?php endif; ?>
 
     <?php if (($user['tipo'] ?? '') === 'soporte' && empty($ticket['encargado_id']) && $ticket['estado'] !== 'cerrado'): ?>
-        <form method="POST" action="/proyectoWebTicket/soporte/tickets/derivar" class="status-form">
+        <form method="POST" action="<?= htmlspecialchars(app_url('soporte/tickets/derivar')) ?>" class="status-form">
             <input type="hidden" name="ticket_id" value="<?= (int) $ticket['id'] ?>">
             <?php if (!empty($encargadoArea)): ?>
                 <button type="submit" class="btn">
@@ -80,7 +80,7 @@ ob_start();
     <?php endif; ?>
 
     <?php if (!empty($puedeGestionar)): ?>
-    <form method="POST" action="/proyectoWebTicket/soporte/tickets/cambiar-estado" class="status-form">
+    <form method="POST" action="<?= htmlspecialchars(app_url('soporte/tickets/cambiar-estado')) ?>" class="status-form">
         <input type="hidden" name="ticket_id" value="<?= $ticket['id'] ?>">
         <input type="hidden" name="estado_actual" value="<?= htmlspecialchars($ticket['estado']) ?>">
         <label for="estado"><strong>Cambiar estado:</strong></label>
@@ -117,7 +117,7 @@ ob_start();
     <?php if ($puedeGestionar): ?>
     <div style="margin-top: 24px;">
         <h3 class="form-section__title">Responder</h3>
-        <form method="POST" action="/proyectoWebTicket/soporte/tickets/responder">
+        <form method="POST" action="<?= htmlspecialchars(app_url('soporte/tickets/responder')) ?>">
             <input type="hidden" name="ticket_id" value="<?= $ticket['id'] ?>">
             <div class="form-group">
                 <textarea name="mensaje" required placeholder="Escribe tu respuesta..."></textarea>
@@ -129,7 +129,7 @@ ob_start();
 </div>
 
 <p style="margin-top: 8px;">
-    <a href="/proyectoWebTicket/soporte/tickets" class="btn btn--ghost">Volver a tickets</a>
+    <a href="<?= htmlspecialchars(app_url('soporte/tickets')) ?>" class="btn btn--ghost">Volver a tickets</a>
 </p>
 
 <?php

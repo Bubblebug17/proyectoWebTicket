@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Core\AppUrl;
 use App\Core\Request;
 use App\Core\Session;
 
@@ -39,7 +40,12 @@ abstract class BaseController
      */
     protected function redirect(string $url): void
     {
-        header("Location: {$url}");
+        if (preg_match('#^https?://#i', $url)) {
+            header("Location: {$url}");
+            exit;
+        }
+
+        header('Location: ' . AppUrl::to(ltrim($url, '/')));
         exit;
     }
 

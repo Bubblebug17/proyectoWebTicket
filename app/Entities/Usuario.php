@@ -2,6 +2,8 @@
 
 namespace App\Entities;
 
+use App\Core\AppUrl;
+
 /**
  * Usuario de la intranet de sucursales Tambo.
  */
@@ -64,9 +66,9 @@ class Usuario
     public static function rutaInicio(string $tipo): string
     {
         return match ($tipo) {
-            'soporte' => '/proyectoWebTicket/soporte/dashboard',
-            'responsable_area' => '/proyectoWebTicket/soporte/tickets',
-            default => '/proyectoWebTicket/ticket/create',
+            'soporte' => AppUrl::path('soporte/dashboard'),
+            'responsable_area' => AppUrl::path('soporte/tickets'),
+            default => AppUrl::path('ticket/create'),
         };
     }
 

@@ -15,8 +15,8 @@ define('CONFIG_PATH', ROOT_PATH . '/config');
 // Cargar autoloader
 require_once ROOT_PATH . '/vendor/autoload.php';
 
-// Cargar configuración
-require_once CONFIG_PATH . '/config.php';
+$config = require CONFIG_PATH . '/config.php';
+\App\Core\AppUrl::init($config['app'] ?? []);
 
 // Iniciar la aplicación
 $app = new App\Core\Application();

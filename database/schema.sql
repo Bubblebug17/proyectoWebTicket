@@ -93,23 +93,28 @@ CREATE TABLE IF NOT EXISTS mensajes (
     INDEX idx_usuario (usuario_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Sedes: San Isidro (sede principal), Miraflores (ventas/atención), Lurín (logística).
 INSERT INTO sucursales (codigo, nombre, orden) VALUES
-('TB-MIR', 'Tambo Miraflores', 1),
-('TB-SBO', 'Tambo San Borja', 2),
-('TB-OLI', 'Tambo Los Olivos', 3);
+('TB-SAN', 'Sede San Isidro', 1),
+('TB-MIR', 'Sede Miraflores', 2),
+('TB-LUR', 'Sede Lurín', 3);
 
--- Usuarios de intranet. La contraseña de los tres es "password".
+-- Usuarios de intranet. La contraseña de todos es "password".
 INSERT INTO usuarios (nombre, apellido, email, celular, password, tipo, sucursal_id)
 SELECT 'María', 'Quispe', 'tienda@demo.com', '999111222', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'responsable_tienda', id
 FROM sucursales WHERE codigo = 'TB-MIR';
 
 INSERT INTO usuarios (nombre, apellido, email, celular, password, tipo, sucursal_id)
+SELECT 'Pedro', 'Castillo', 'almacen@demo.com', '999111333', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'responsable_tienda', id
+FROM sucursales WHERE codigo = 'TB-LUR';
+
+INSERT INTO usuarios (nombre, apellido, email, celular, password, tipo, sucursal_id)
 SELECT 'Carlos', 'Mendoza', 'soporte@demo.com', '999333444', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'soporte', id
-FROM sucursales WHERE codigo = 'TB-SBO';
+FROM sucursales WHERE codigo = 'TB-SAN';
 
 INSERT INTO usuarios (nombre, apellido, email, celular, password, tipo, sucursal_id)
 SELECT 'Lucía', 'Ramos', 'area@demo.com', '999555666', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'responsable_area', id
-FROM sucursales WHERE codigo = 'TB-OLI';
+FROM sucursales WHERE codigo = 'TB-LUR';
 
 -- Catálogo de clasificación (no son tickets)
 INSERT INTO tipos_ticket (codigo, nombre, orden) VALUES
@@ -161,18 +166,18 @@ INSERT INTO usuarios (nombre, apellido, email, celular, password, tipo, sucursal
 SELECT 'Andrés', 'Paredes', 'tecnologia@demo.com', '999555001', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'responsable_area', s.id, t.id
 FROM sucursales s
 INNER JOIN tipos_ticket t ON t.codigo = 'tecnologico'
-WHERE s.codigo = 'TB-SBO';
+WHERE s.codigo = 'TB-SAN';
 
 INSERT INTO usuarios (nombre, apellido, email, celular, password, tipo, sucursal_id, area_id)
 SELECT 'Rosa', 'Delgado', 'administracion@demo.com', '999555002', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'responsable_area', s.id, t.id
 FROM sucursales s
 INNER JOIN tipos_ticket t ON t.codigo = 'administrativo'
-WHERE s.codigo = 'TB-SBO';
+WHERE s.codigo = 'TB-SAN';
 
 INSERT INTO usuarios (nombre, apellido, email, celular, password, tipo, sucursal_id, area_id)
 SELECT 'Javier', 'Soto', 'otros@demo.com', '999555003', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'responsable_area', s.id, t.id
 FROM sucursales s
 INNER JOIN tipos_ticket t ON t.codigo = 'otros'
-WHERE s.codigo = 'TB-SBO';
+WHERE s.codigo = 'TB-SAN';
 
 -- No se insertan tickets de ejemplo.

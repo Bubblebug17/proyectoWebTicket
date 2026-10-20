@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($title ?? 'Intranet Tambo') ?></title>
-    <link rel="icon" type="image/png" href="/proyectoWebTicket/public/img/tambo-sello.png">
-    <link rel="stylesheet" href="/proyectoWebTicket/public/css/app.css?v=tambo-logo">
+    <link rel="icon" type="image/png" href="<?= htmlspecialchars(app_asset('img/tambo-sello.png')) ?>">
+    <link rel="stylesheet" href="<?= htmlspecialchars(app_asset('css/app.css?v=tambo-logo')) ?>">
 </head>
 <body>
     <?php
@@ -15,33 +15,33 @@
     $perfil = $user['tipo'] ?? '';
     $inicioIntranet = $perfil !== ''
         ? \App\Entities\Usuario::rutaInicio($perfil)
-        : '/proyectoWebTicket/login';
+        : app_url('login');
     ?>
     <header class="site-header">
         <div class="container">
             <a href="<?= htmlspecialchars($inicioIntranet) ?>" class="brand">
-                <img class="brand__mark" src="/proyectoWebTicket/public/img/tambo-sello.png" alt="" width="42" height="42">
+                <img class="brand__mark" src="<?= htmlspecialchars(app_asset('img/tambo-sello.png')) ?>" alt="" width="42" height="42">
                 Intranet
             </a>
             <ul class="site-nav">
                 <?php if ($perfil !== ''): ?>
-                    <li><a href="/proyectoWebTicket/ticket/create">Nuevo ticket</a></li>
+                    <li><a href="<?= htmlspecialchars(app_url('ticket/create')) ?>">Nuevo ticket</a></li>
                     <?php if ($perfil === 'soporte'): ?>
-                        <li><a href="/proyectoWebTicket/soporte/dashboard">Dashboard</a></li>
-                        <li><a href="/proyectoWebTicket/soporte/tickets">Tickets</a></li>
-                        <li><a href="/proyectoWebTicket/soporte/reportes">Reportes</a></li>
+                        <li><a href="<?= htmlspecialchars(app_url('soporte/dashboard')) ?>">Dashboard</a></li>
+                        <li><a href="<?= htmlspecialchars(app_url('soporte/tickets')) ?>">Tickets</a></li>
+                        <li><a href="<?= htmlspecialchars(app_url('soporte/reportes')) ?>">Reportes</a></li>
                     <?php elseif ($perfil === 'responsable_area'): ?>
-                        <li><a href="/proyectoWebTicket/soporte/tickets">Mis tickets</a></li>
+                        <li><a href="<?= htmlspecialchars(app_url('soporte/tickets')) ?>">Mis tickets</a></li>
                     <?php endif; ?>
                     <li class="nav-user">
                         <?= htmlspecialchars(trim(($user['nombre'] ?? '') . ' ' . ($user['apellido'] ?? ''))) ?>
                         <span><?= htmlspecialchars(trim(($user['perfil'] ?? \App\Entities\Usuario::etiquetaPerfil($perfil)) . (!empty($user['area_nombre']) ? ' · ' . $user['area_nombre'] : ''))) ?></span>
                     </li>
                     <li>
-                        <a href="/proyectoWebTicket/logout">Cerrar sesión</a>
+                        <a href="<?= htmlspecialchars(app_url('logout')) ?>">Cerrar sesión</a>
                     </li>
                 <?php else: ?>
-                    <li><a href="/proyectoWebTicket/login">Ingresar</a></li>
+                    <li><a href="<?= htmlspecialchars(app_url('login')) ?>">Ingresar</a></li>
                 <?php endif; ?>
             </ul>
         </div>

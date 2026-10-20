@@ -68,7 +68,7 @@ class AuthController extends BaseController
     {
         $user = $this->getCurrentUser();
         if (!$user) {
-            $this->redirect('/proyectoWebTicket/login');
+            $this->redirect('login');
             return;
         }
 
@@ -81,6 +81,6 @@ class AuthController extends BaseController
     public function logout(): void
     {
         $this->session->destroy();
-        $this->redirect('/proyectoWebTicket/login');
+        $this->redirect('login');
     }
 }

@@ -53,6 +53,47 @@ function pickWeighted(array $items, array $weights): mixed
     return $items[array_key_last($items)];
 }
 
+/**
+ * Elige sede según el motivo del ticket (San Isidro corporativo, Miraflores ventas, Lurín logística).
+ *
+ * @param array<string, array{id: int|string, codigo: string, nombre: string}> $porCodigo
+ * @return array{id: int|string, codigo: string, nombre: string}
+ */
+function pickSucursalForSubtipo(array $porCodigo, string $tipoCodigo, string $subtipoCodigo): array
+{
+    $pesosPorCodigo = match ($tipoCodigo) {
+        'logistico' => ['TB-LUR' => 72, 'TB-MIR' => 22, 'TB-SAN' => 6],
+        'tecnologico' => ['TB-SAN' => 45, 'TB-MIR' => 45, 'TB-LUR' => 10],
+        'administrativo' => match ($subtipoCodigo) {
+            'reclamo_cliente', 'error_cierre_caja', 'diferencia_arqueo' => [
+                'TB-MIR' => 78,
+                'TB-SAN' => 17,
+                'TB-LUR' => 5,
+            ],
+            default => ['TB-SAN' => 42, 'TB-MIR' => 43, 'TB-LUR' => 15],
+        },
+        'otros' => ['TB-MIR' => 38, 'TB-SAN' => 27, 'TB-LUR' => 35],
+        default => ['TB-SAN' => 34, 'TB-MIR' => 33, 'TB-LUR' => 33],
+    };
+
+    $items = [];
+    $weights = [];
+    foreach ($pesosPorCodigo as $codigo => $peso) {
+        if (!isset($porCodigo[$codigo])) {
+            continue;
+        }
+        $items[] = $porCodigo[$codigo];
+        $weights[] = $peso;
+    }
+
+    if ($items === []) {
+        return array_values($porCodigo)[0];
+    }
+
+    /** @var array{id: int|string, codigo: string, nombre: string} */
+    return pickWeighted($items, $weights);
+}
+
 try {
     $db = Database::getConnection();
     $db->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
@@ -106,11 +147,35 @@ try {
         $tiendaPorSucursal[(int) $tienda['sucursal_id']] = $tienda;
     }
 
+    $sucursalesPorCodigo = [];
+    foreach ($sucursales as $fila) {
+        $sucursalesPorCodigo[$fila['codigo']] = $fila;
+    }
+
     $responsablesExtra = [
-        'TB-SBO' => ['nombre' => 'Diego', 'apellido' => 'Salazar', 'email' => 'diego.salazar@tambo.pe', 'celular' => '987120334'],
-        'TB-OLI' => ['nombre' => 'Carmen', 'apellido' => 'Villegas', 'email' => 'carmen.villegas@tambo.pe', 'celular' => '987441902'],
-        'TB-MIR' => ['nombre' => 'María', 'apellido' => 'Quispe', 'email' => 'tienda@demo.com', 'celular' => '999111222'],
+        'TB-SAN' => [
+            'nombre' => 'Camila',
+            'apellido' => 'Ríos',
+            'email' => 'oficina.sanisidro@tambo.pe',
+            'celular' => '987220011',
+        ],
+        'TB-MIR' => [
+            'nombre' => 'María',
+            'apellido' => 'Quispe',
+            'email' => 'tienda@demo.com',
+            'celular' => '999111222',
+        ],
+        'TB-LUR' => [
+            'nombre' => 'Pedro',
+            'apellido' => 'Castillo',
+            'email' => 'almacen@demo.com',
+            'celular' => '999111333',
+        ],
     ];
+
+    $fallbackSolicitante = $responsablesExtra['TB-MIR']
+        ?? reset($responsablesExtra)
+        ?: ['nombre' => 'Usuario', 'apellido' => 'Demo', 'email' => 'demo@tambo.pe', 'celular' => '999000000'];
 
     $porTipo = [];
     foreach ($subtipos as $subtipo) {
@@ -266,12 +331,16 @@ try {
     for ($i = 0; $i < $count; $i++) {
         $tipoId = $tipoIds[$i % count($tipoIds)];
         $subtipo = $porTipo[$tipoId][array_rand($porTipo[$tipoId])];
-        $sucursal = $sucursales[array_rand($sucursales)];
+        $sucursal = pickSucursalForSubtipo(
+            $sucursalesPorCodigo,
+            (string) $subtipo['tipo_codigo'],
+            (string) $subtipo['codigo']
+        );
         $estado = pickWeighted($estados, $pesosEstado);
 
         $solicitante = $tiendaPorSucursal[(int) $sucursal['id']]
             ?? $responsablesExtra[$sucursal['codigo']]
-            ?? $responsablesExtra['TB-MIR'];
+            ?? $fallbackSolicitante;
 
         $dias = mt_rand(1, 40);
         $fechaCreacion = randomDateBetween("-{$dias} days", '-2 hours');
